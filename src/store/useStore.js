@@ -1,4 +1,5 @@
 import {create} from "zustand";
+import { devtools, persist, subscribeWithSelector } from "zustand/middleware";
 
   
  const useStore = create((set)=> ({  // create a store with zustand
@@ -99,5 +100,52 @@ export const useBoundStore = create((...a) => ({
 // }
 
 // export default HeaderComponent;
+ 
+   
+ export const  useAuthStor = create(
+   persist(
+     (set) => ({
+          user : null ,
+          token : null,
+           setAuth : (user , token) => set({user , token}),
+           logout : ()=> set({user : null , token : null}) 
+     }), 
+     {
+          name : 'auth-storage',  // storage key
+          pertialize : (state)=> ({user : state.user}), // only presist user 
+           version : 1,
+          
+     }
+   )
+ )
+ // presist Middleware  (Local Storage)
 
-  
+
+ // subscribeWithSelector  : Monitor(track) specific variable (value ) in th store
+     export const useStore3 = create(
+        subscribeWithSelector((set) => ({
+             count : 0 ,
+              increamet : set((state) => ({count : state.count +1 }))
+        }))
+     )
+      // in the Component (if you wanna track Counter value);  good with Anyltics , call outside Server 
+  useStore3.subscribe(
+     (state)=> state.count,
+     (currentCount , previousCount)=> {
+       console.log(`the Counter Changed From ${previousCount} to ${currentCount}`);
+     }
+  )   
+
+
+   //Redux DevTool (Work also With Zustand) : track every action happen and when , and made time travel for state.
+
+    export const useStore4 = create(
+      devtools(
+        (set)=> ({
+            count :  0 ,
+            increase : () =>  set((state) => ({ count : state.count + 1}) , false ,'counter/increament') 
+        }),
+        {name : 'Awsem Store4'}  // that will apper in the devTools 
+      )
+    )
+    

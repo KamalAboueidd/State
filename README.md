@@ -9,8 +9,8 @@ It has a simple API and needs less code than many other state libraries.
 
  ![Zustand](zustand-vs-redux-toolkit-for-react-state-managemen-1770720374772.png)
  ![Zustand](zustand.webp)
- ![Zustand](zustand1.webp)
- ![Zustand](zustand2.webp)
+ ![Zustand](zustand1.png)
+ ![Zustand](zustand2.png)
 
 ## Creating a Store
 

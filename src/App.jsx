@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import Counter from './pages/Counter'
-
+// import Counter from './pages/Counter'
+import CounterRTk from './pages/CounterRTK'
 
 function App() {
  
   return (
     <div>
-         <Counter />
+         {/* <Counter /> */}
+         <CounterRTk />
     </div>
   )
 }

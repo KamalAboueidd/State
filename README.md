@@ -308,3 +308,303 @@ const useStore = create(
   )
 );
 ```
+# Redux Toolkit Notes
+## 1. Redux Fundamentals
+Redux is a state management library.
+It helps us manage shared data in one central store.
+The main idea is:
+UI → Dispatch Action → Reducer → Update State → UI
+### State
+State is the data stored inside Redux.
+Example:
+    const initialState = {
+      count: 0,
+      user: null
+    };
+Here, `count` and `user` are part of the state.
+### Action
+An action tells Redux what happened.
+Example:
+    {
+      type: "counter/increment"
+    }
+An action can also send data using `payload`.
+    {
+      type: "counter/add",
+      payload: 5
+    }
+### Reducer
+A reducer is a function that decides how the state changes.
+    const counterReducer = (state, action) => {
+      if (action.type === "counter/increment") {
+        return {
+          ...state,
+          count: state.count + 1
+        };
+      }
+      return state;
+    };
+
+### Dispatch
+
+`dispatch` sends an action to Redux.
+    dispatch({
+      type: "counter/increment"
+    });
+The action goes to the reducer.
+The reducer updates the state.
+Then React gets the new state.
+---
+## 2. Installation & Setup
+For a React project, install these packages:
+    npm install @reduxjs/toolkit react-redux
+`@reduxjs/toolkit` gives us the tools to build Redux applications.
+`react-redux` connects Redux with React.
+### Create the Store
+The Store is the central place that contains our Redux state.
+    import { configureStore } from "@reduxjs/toolkit";
+    export const store = configureStore({
+      reducer: {}
+    });
+### Provider
+We use `Provider` to make the Store available to React components.
+    import { Provider } from "react-redux";
+    import { store } from "./store";
+
+    <Provider store={store}>
+      <App />
+    </Provider>
+
+Now all components inside `Provider` can access the Redux Store.
+---
+## 3. createSlice & Store
+`createSlice` is one of the most important tools in Redux Toolkit.
+It puts the state, reducers, and actions together in one place.
+### Example
+    import { createSlice } from "@reduxjs/toolkit";
+    const counterSlice = createSlice({
+      name: "counter",
+      initialState: {
+        count: 0
+      },
+      reducers: {
+        increment: (state) => {
+          state.count += 1;
+        },
+
+        decrement: (state) => {
+          state.count -= 1;
+        }
+      }
+    });
+    export const { increment, decrement } = counterSlice.actions;
+    export default counterSlice.reducer;
+### createSlice Parts
+`name` is the name of the slice.
+    name: "counter"
+`initialState` is the first state.
+    initialState: {
+      count: 0
+    }
+`reducers` contains the functions that change the state.
+    reducers: {
+      increment: (state) => {
+        state.count += 1;
+      }
+    }
+Redux Toolkit also creates the actions for us.
+    export const { increment, decrement } = counterSlice.actions;
+Now we can use:
+    dispatch(increment());
+### Immer
+Redux normally needs immutable updates.
+But Redux Toolkit uses Immer internally.
+So we can write:
+    state.count += 1;
+Instead of writing:
+    return {
+      ...state,
+      count: state.count + 1
+    };
+Immer creates the immutable update for us.
+### Add the Slice to the Store
+
+    import { configureStore } from "@reduxjs/toolkit";
+    import counterReducer from "./counterSlice";
+
+    export const store = configureStore({
+      reducer: {
+        counter: counterReducer
+      }
+    });
+
+Now the Redux state looks like this:
+
+    {
+      counter: {
+        count: 0
+      }
+    }
+---
+## 4. React Hooks
+React-Redux gives us two main hooks:
+- `useSelector` → Read data from the Store.
+- `useDispatch` → Send actions to the Store.
+### useSelector
+`useSelector` is used to read data from Redux.
+    import { useSelector } from "react-redux";
+    const count = useSelector((state) => state.counter.count);
+Here:
+    state.counter.count
+means:
+- `state` → the Redux Store state.
+- `counter` → our counter slice.
+- `count` → the value we want.
+
+### useDispatch
+
+`useDispatch` gives us the `dispatch` function.
+    import { useDispatch } from "react-redux";
+    import { increment } from "./counterSlice";
+    const dispatch = useDispatch();
+    dispatch(increment());
+This sends the `increment` action to Redux.
+### Full Example
+    import { useSelector, useDispatch } from "react-redux";
+    import { increment, decrement } from "./counterSlice";
+
+    function Counter() {
+      const count = useSelector((state) => state.counter.count);
+      const dispatch = useDispatch();
+
+      return (
+        <div>
+          <p>{count}</p>
+
+          <button onClick={() => dispatch(increment())}>
+            +
+          </button>
+
+          <button onClick={() => dispatch(decrement())}>
+            -
+          </button>
+        </div>
+      );
+    }
+The flow is:
+    User clicks button
+          ↓
+    dispatch(increment())
+          ↓
+    Reducer runs
+          ↓
+    State changes
+          ↓
+    useSelector gets new value
+          ↓
+    Component re-renders
+---
+## 5. Selectors & createSelector
+A Selector is a function that reads a specific part of the Redux state.
+Example:
+    const selectCount = (state) => state.counter.count;
+We can use it with `useSelector`.
+    const count = useSelector(selectCount);
+Selectors make our code cleaner because we can reuse them.
+### Derived Data
+Sometimes we do not need the data directly.
+We need to calculate new data from the Store.
+Example:
+    const selectTodos = (state) => state.todos.items;
+
+    const selectCompletedTodos = (state) =>
+      state.todos.items.filter((todo) => todo.completed);
+
+Here, `selectCompletedTodos` creates new data from the existing state.
+This is called **derived data**.
+### The Problem
+Every time the selector runs, `filter()` creates a new array.
+    const selectCompletedTodos = (state) =>
+     state.todos.items.filter((todo) => todo.completed);
+A new array is created every time.
+This can cause unnecessary work and re-renders in some cases.
+### createSelector
+`createSelector` helps us memoize selectors.
+Memoization means:
+> If the input did not change, return the previous result.
+Example:
+    import { createSelector } from "@reduxjs/toolkit";
+    const selectTodos = (state) => state.todos.items;
+    const selectCompletedTodos = createSelector(
+      [selectTodos],
+      (todos) => todos.filter((todo) => todo.completed)
+    );
+Now `selectCompletedTodos` remembers the previous result.
+If `todos` did not change, it can return the same result instead of creating a new array again.
+### Using createSelector with React
+    const completedTodos = useSelector(selectCompletedTodos);
+The component gets the calculated data from the selector.
+### Simple Example
+State:
+    {
+      todos: [
+        { id: 1, text: "Learn Redux", completed: true },
+        { id: 2, text: "Learn React", completed: false },
+        { id: 3, text: "Practice RTK", completed: true }
+      ]
+   }
+Selector:
+    const selectCompletedTodos = createSelector(
+      [(state) => state.todos],
+      (todos) => todos.filter((todo) => todo.completed)
+    );
+Result
+    [
+      { id: 1, text: "Learn Redux", completed: true },
+      { id: 3, text: "Practice RTK", completed: true }
+    ] 
+The important idea is:
+    State
+      ↓
+    Selector
+      ↓
+    Derived Data
+      ↓
+    React Component
+### Why Memoization?
+Without memoization:
+    State → Selector → New Result
+With `createSelector`:
+    Same Input
+        ↓
+    Same Result
+So `createSelector` can reduce unnecessary calculations and help avoid unnecessary re-renders.
+### Important Note
+`createSelector` does not stop all React re-renders.
+It mainly helps by returning the same result when its inputs have not changed.
+Use it when you have expensive calculations or derived data.
+---
+## Summary
+
+Redux has a simple flow:
+    UI
+     ↓
+    dispatch(action)
+     ↓
+    reducer
+     ↓
+    state update
+     ↓
+    UI
+The most important concepts we learned:
+- Store → Holds the global state.
+- State → The application data.
+- Action → Describes what happened.
+- Reducer → Changes the state.
+- Dispatch → Sends an action.
+- `createSlice` → Creates reducers and actions together.
+- `Provider` → Connects Redux with React.
+- `useSelector` → Reads data.
+- `useDispatch` → Sends actions.
+- Selector → Reads or calculates data from the state.
+- `createSelector` → Creates memoized selectors for derived data.

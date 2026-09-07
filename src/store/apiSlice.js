@@ -1,0 +1,25 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"; // react to provid reactHook directly 
+ 
+ export const apiSlice = createApi({
+    reducerPath : 'api',  // name that will be save in reduc store 
+     // url test
+    baseQuery :fetchBaseQuery({ baseUrl : ('https://jsonplaceholder.typicode.com/')}), // main endpoint
+    endpoints : (builder) => ({  // take par.. builder who let me talk and say what i want(fetch da , post ?..)
+         // builder.query ==?> when i want to make Get request. 
+        getPosts : builder.query({
+            query : ()=> 'posts?_limit=5',
+         }),
+         // builder.mutation ==> update or send data (POST, PUT, DELETE)
+         addPostt : builder.mutation({
+            query : (newPost) => ({
+                url : 'posts',
+                method : 'POST',
+                body: newPost,
+            }),
+         }),
+    }),
+ })
+ export const {useGetPostsQuery , useAddPostMutation} = apiSlice ;
+
+//  fetchBaseQuery ==> دي أداة مساعدة بسيطة مبنية أساساً فوق الـ fetch العادية بتاعت المتصفح، فايدتها توفر عليك كتابة الهيدرز والـ JSON conversion في كل مرة، وتظبطلك الرابط الثابت
+

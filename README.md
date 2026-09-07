@@ -608,3 +608,46 @@ The most important concepts we learned:
 - `useDispatch` → Sends actions.
 - Selector → Reads or calculates data from the state.
 - `createSelector` → Creates memoized selectors for derived data.
+
+## createAsyncThunk
+`createAsyncThunk` is used to handle asynchronous operations such as API requests.
+It automatically creates three states for the request: `pending`, `fulfilled`, and `rejected`.
+We use these states to update the UI depending on the request status.
+The basic structure is:
+```js
+const fetchPosts = createAsyncThunk(
+  "posts/fetchPosts",
+  async () => {
+    const response = await fetch("https://api.example.com/posts");
+    return await response.json();
+  }
+);
+```
+The first argument is the action type prefix. It helps Redux identify the thunk.
+The second argument is an async function that contains the API request.
+When the request starts, Redux dispatches `pending`.
+When the request succeeds, Redux dispatches `fulfilled` and gives us the returned data.
+When the request fails, Redux dispatches `rejected`.
+We handle these states inside `extraReducers`.
+```js
+extraReducers: (builder) => {
+  builder
+    .addCase(fetchPosts.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(fetchPosts.fulfilled, (state, action) => {
+      state.loading = false;
+      state.items = action.payload;
+    })
+    .addCase(fetchPosts.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
+}
+```
+`extraReducers` lets a slice respond to actions created outside its `reducers` field.
+`action.payload` contains the data returned from the thunk.
+`action.error` contains information about a failed request.
+The flow is: `dispatch(fetchPosts())` → `pending` → API request → `fulfilled` or `rejected`.
+This makes async code easier to manage because Redux controls the request states for us.

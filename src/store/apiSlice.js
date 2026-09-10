@@ -1,3 +1,4 @@
+ // work  with async without asyncThunk .. createApi 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"; // react to provid reactHook directly 
  
  export const apiSlice = createApi({

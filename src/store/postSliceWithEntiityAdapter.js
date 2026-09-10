@@ -33,6 +33,7 @@ export const postSliceWithEntiityAdapter = createSlice({
         })
         .addCase(fetchPosts.fulfilled , (state , action) => {
             state.status = 'succedded';
+    // action comes as array .. setAll store the array that come in entites , as normazlize state (magic !)
          postAdapter.setAll(state , action.payload);
         })
         .addCase(fetchPosts.error , (state) => {

@@ -1,6 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import  counterReducer  from "./counterSliceRTK";
 import  postsReducer  from "./PostSlice";
+import  PostsEntityReducer  from "./postSliceWithEntiityAdapter";
 import { apiSlice } from "./apiSlice";
  export const store = configureStore(
     { 
@@ -8,6 +9,7 @@ import { apiSlice } from "./apiSlice";
             counter : counterReducer,
             posts : postsReducer,
             [apiSlice.reducerPath] : apiSlice.reducer,
+            postsEntity : PostsEntityReducer
         },
       // middleware is a layer betw dispatch and store .
       // apply reux to work with async oper.. , RTK QUERY , caching , monitor the actions .

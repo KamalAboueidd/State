@@ -42,6 +42,7 @@ export const postSliceWithEntiityAdapter = createSlice({
     }
 
 })
+  // adapter give you buit in funcs to read and dispaly data 
 export const {
     selectAll: selectAllPosts,
     selectById: selectPostById,

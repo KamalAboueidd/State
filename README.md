@@ -651,3 +651,237 @@ extraReducers: (builder) => {
 `action.error` contains information about a failed request.
 The flow is: `dispatch(fetchPosts())` → `pending` → API request → `fulfilled` or `rejected`.
 This makes async code easier to manage because Redux controls the request states for us.
+
+
+## RTK Query
+RTK Query is a tool included in Redux Toolkit for working with APIs and server data.
+It handles data fetching, caching, loading states, errors, and automatic refetching.
+It reduces the need to write `useEffect`, `useState`, and `createAsyncThunk` for API requests.
+### createApi
+`createApi()` creates an API slice where we define our API endpoints and configuration.
+### fetchBaseQuery
+`fetchBaseQuery()` is a small wrapper around `fetch()` used to make HTTP requests.
+We usually define the API base URL once and use relative URLs inside the endpoints.
+### Endpoints
+`endpoints` contains the API operations used by the application.
+We usually use `builder.query()` for reading data and `builder.mutation()` for changing data.
+### Query
+`builder.query()` is used to fetch or read data from the server, usually with `GET`.
+RTK Query automatically manages the result and stores it in its cache.
+### Mutation
+`builder.mutation()` is used to change server data using `POST`, `PUT`, `PATCH`, or `DELETE`.
+### Generated Hooks
+RTK Query automatically creates React hooks from our endpoints.
+For example, `getPosts` creates `useGetPostsQuery()`, and `addPost` creates `useAddPostMutation()`.
+### Query Hook
+`useGetPostsQuery()` automatically sends the request and provides values such as `data`, `isLoading`, `isFetching`, and `error`.
+### Mutation Hook
+`useAddPostMutation()` returns a function that we call when we want to send a mutation request.
+### Caching
+RTK Query stores fetched data in a cache, so it can reuse existing data instead of making unnecessary requests.
+### Tags
+`tagTypes` defines the types of tags used by the API cache, such as `Posts` or `Users`.
+`providesTags` tells RTK Query which data a query provides.
+`invalidatesTags` marks cached data as outdated after a mutation, which can trigger a refetch.
+### Reducer
+`apiSlice.reducer` stores RTK Query state inside the Redux Store.
+It is added using `[apiSlice.reducerPath]: apiSlice.reducer`.
+### Middleware
+`apiSlice.middleware` enables RTK Query to manage requests, caching, subscriptions, and other behavior.
+It is added with `getDefaultMiddleware().concat(apiSlice.middleware)`.
+### skip
+`skip` prevents a query from running when certain conditions are not met.
+### Refetching
+Options such as `refetchOnMountOrArgChange`, `refetchOnFocus`, and `refetchOnReconnect` control when RTK Query should fetch data again.
+### unwrap
+`unwrap()` returns the actual mutation result or throws an error, making it useful with `async/await` and `try/catch`.
+### Main Idea
+RTK Query manages most server-state work for us: fetching, caching, loading, errors, refetching, and synchronization.
+
+# RTK Query - Complete Example
+## 1. API Slice
+`createApi()` creates the RTK Query API service.
+`fetchBaseQuery()` is used to send HTTP requests with a base URL.
+`builder.query()` is used to fetch data.
+`builder.mutation()` is used to create, update, or delete data.
+```js
+// store/apiSlice.js
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
+export const apiSlice = createApi({
+  // Defines where RTK Query stores its state in Redux.
+  reducerPath: "api",
+  // Creates the base configuration for API requests.
+  baseQuery: fetchBaseQuery({
+    baseUrl: "https://jsonplaceholder.typicode.com"
+  }),
+  // Defines the cache tag types used by this API.
+  tagTypes: ["Posts"],
+  // Contains all API operations.
+  endpoints: (builder) => ({
+    // query() is used to GET data from the server.
+    getPosts: builder.query({
+      // Defines the endpoint URL.
+      query: () => "/posts",
+      // Marks the returned data as Posts in the cache.
+      providesTags: ["Posts"]
+    }),
+    // mutation() is used to change data on the server.
+    addPost: builder.mutation({
+      // Defines the POST request.
+      query: (newPost) => ({
+        url: "/posts",
+        method: "POST",
+        body: newPost
+      }),
+      // Marks Posts cache as outdated after adding a post.
+      invalidatesTags: ["Posts"]
+    })
+  })
+});
+
+// RTK Query automatically generates these React hooks.
+export const {
+  useGetPostsQuery,
+  useAddPostMutation
+} = apiSlice;
+```
+## 2. Redux Store
+We must add the RTK Query reducer and middleware to the Redux Store.
+The reducer stores RTK Query state.
+The middleware handles requests, caching, subscriptions, and other RTK Query behavior.
+```js
+// store/store.js
+import { configureStore } from "@reduxjs/toolkit";
+import { apiSlice } from "./apiSlice";
+
+export const store = configureStore({
+  reducer: {
+    // Adds RTK Query state to Redux.
+    [apiSlice.reducerPath]: apiSlice.reducer
+  },
+  middleware: (getDefaultMiddleware) =>
+    // Adds RTK Query middleware to the default middleware.
+    getDefaultMiddleware().concat(apiSlice.middleware)
+});
+```
+## 3. Connect Store to React
+`Provider` makes the Redux Store available to all React components.
+```jsx
+// main.jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import { store } from "./store/store";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+);
+```
+## 4. Use Query in a Component
+`useGetPostsQuery()` is automatically generated from `getPosts`.
+It automatically sends the request and gives us data, loading, fetching, and error states.
+```jsx
+// Posts.jsx
+import { useGetPostsQuery } from "./store/apiSlice";
+
+function Posts() {
+  // data = API data
+  // isLoading = first request is loading
+  // isFetching = request is running again
+  // error = request error
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error
+  } = useGetPostsQuery();
+
+  if (isLoading) return <h2>Loading...</h2>;
+  if (error) return <h2>Error!</h2>;
+
+  return (
+    <ul>
+      {data?.slice(0, 10).map((post) => (
+        <li key={post.id}>
+          {post.title}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export default Posts;
+```
+## 5. Use Mutation
+`useAddPostMutation()` returns a function that sends the mutation request.
+We call the function when we want to add a new post.
+```jsx
+import { useAddPostMutation } from "./store/apiSlice";
+
+function AddPost() {
+  const [addPost, { isLoading }] = useAddPostMutation();
+
+  async function handleAddPost() {
+    try {
+      const result = await addPost({
+        title: "Hello",
+        body: "My first post",
+        userId: 1
+      }).unwrap();
+
+      console.log(result);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  return (
+    <button onClick={handleAddPost} disabled={isLoading}>
+      {isLoading ? "Adding..." : "Add Post"}
+    </button>
+  );
+}
+
+export default AddPost;
+```
+## 6. Important RTK Query Functions
+`createApi()` → creates the API service.
+`fetchBaseQuery()` → creates the base HTTP request function.
+`builder.query()` → reads/fetches server data.
+`builder.mutation()` → changes server data.
+`providesTags` → tells RTK Query what data a query provides.
+`invalidatesTags` → marks cached data as outdated after a mutation.
+`tagTypes` → defines available cache tag types.
+`apiSlice.reducer` → stores RTK Query state in Redux.
+`apiSlice.middleware` → enables RTK Query request and cache behavior.
+`useGetPostsQuery()` → automatically fetches and caches posts.
+`useAddPostMutation()` → sends a mutation request.
+`unwrap()` → returns the real result or throws the error.
+## 7. The Complete Flow
+Component calls `useGetPostsQuery()`.
+RTK Query sends the request using `fetchBaseQuery()`.
+The server returns the data.
+RTK Query stores the data in its cache.
+The component receives the data and renders it.
+When a mutation invalidates the `Posts` tag, RTK Query can refetch the posts.
+```text
+Component
+    ↓
+useGetPostsQuery()
+    ↓
+builder.query()
+    ↓
+fetchBaseQuery()
+    ↓
+API Server
+    ↓
+Response
+    ↓
+RTK Query Cache
+    ↓
+Component
+```

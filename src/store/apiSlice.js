@@ -9,18 +9,23 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"; // rea
          // builder.query ==?> when i want to make Get request. 
         getPosts : builder.query({
             query : ()=> 'posts?_limit=5',
+            providesTags : ['post'] , //  when the data is loaded => give tag to the data  , now Cach has tag = post . 
          }),
          // builder.mutation ==> update or send data (POST, PUT, DELETE)
          addPostt : builder.mutation({
             query : (newPost) => ({
-                url : 'posts',
+                url : 'posts',   
                 method : 'POST',
                 body: newPost,
             }),
+            invalidatesTags : ['post']  // when the data is added => delete Cach that has tag = post . => refetch
          }),
     }),
  })
- export const {useGetPostsQuery , useAddPostMutation} = apiSlice ;
+ export const {useGetPostsQuery , useAddPostMutation  } = apiSlice ;
 
 //  fetchBaseQuery ==> دي أداة مساعدة بسيطة مبنية أساساً فوق الـ fetch العادية بتاعت المتصفح، فايدتها توفر عليك كتابة الهيدرز والـ JSON conversion في كل مرة، وتظبطلك الرابط الثابت
 
+// unwrap 
+//refetchOnMountOrArgChange 
+//skip ==> prevent quary from running

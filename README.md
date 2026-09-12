@@ -1222,3 +1222,260 @@ Normalized State tells us how to structure the data.
 Entity Adapter gives us tools to manage that structure.
 
 Together, they are very useful when working with large or frequently changing collections in Redux Toolkit.
+
+
+# Redux Toolkit Entity Adapter — Complete Example
+
+## 1. coursesSlice.js
+
+```js
+import {
+  createSlice,
+  createEntityAdapter
+} from "@reduxjs/toolkit";
+
+// Create an Entity Adapter for courses
+const coursesAdapter = createEntityAdapter();
+
+const coursesSlice = createSlice({
+  name: "courses",
+
+  // Create the initial normalized state
+  initialState: coursesAdapter.getInitialState(),
+
+  reducers: {
+    // Add one course
+    courseAdded: coursesAdapter.addOne,
+
+    // Add many courses
+    coursesAdded: coursesAdapter.addMany,
+
+    // Update a course by ID
+    courseUpdated: coursesAdapter.updateOne,
+
+    // Remove one course by ID
+    courseRemoved: coursesAdapter.removeOne,
+
+    // Remove all courses
+    coursesCleared: coursesAdapter.removeAll
+  }
+});
+
+// Export generated actions
+export const {
+  courseAdded,
+  coursesAdded,
+  courseUpdated,
+  courseRemoved,
+  coursesCleared
+} = coursesSlice.actions;
+
+// Create selectors for the courses state
+export const coursesSelectors =
+  coursesAdapter.getSelectors(
+    (state) => state.courses
+  );
+
+export default coursesSlice.reducer;
+```
+
+---
+
+## 2. store.js
+
+```js
+import { configureStore } from "@reduxjs/toolkit";
+import coursesReducer from "./coursesSlice";
+
+export const store = configureStore({
+  reducer: {
+    courses: coursesReducer
+  }
+});
+```
+
+---
+
+## 3. Courses.jsx
+
+```jsx
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  courseAdded,
+  courseUpdated,
+  courseRemoved,
+  coursesSelectors
+} from "./coursesSlice";
+
+function Courses() {
+  // Get dispatch function
+  const dispatch = useDispatch();
+
+  // Get all courses using Entity Adapter selector
+  const courses = useSelector(
+    coursesSelectors.selectAll
+  );
+
+  // Add a new course
+  const handleAddCourse = () => {
+    dispatch(
+      courseAdded({
+        id: 1,
+        title: "JavaScript",
+        teacher: "Kamal"
+      })
+    );
+  };
+
+  // Update an existing course
+  const handleUpdateCourse = () => {
+    dispatch(
+      courseUpdated({
+        id: 1,
+        changes: {
+          title: "Advanced JavaScript"
+        }
+      })
+    );
+  };
+
+  // Remove a course by ID
+  const handleRemoveCourse = () => {
+    dispatch(courseRemoved(1));
+  };
+
+  return (
+    <div>
+      <button onClick={handleAddCourse}>
+        Add Course
+      </button>
+
+      <button onClick={handleUpdateCourse}>
+        Update Course
+      </button>
+
+      <button onClick={handleRemoveCourse}>
+        Delete Course
+      </button>
+
+      <h2>Courses</h2>
+
+      {courses.map((course) => (
+        <div key={course.id}>
+          <h3>{course.title}</h3>
+          <p>Teacher: {course.teacher}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default Courses;
+```
+
+---
+
+## 4. main.jsx
+
+```jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+
+import { store } from "./store";
+import Courses from "./Courses";
+
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
+  <Provider store={store}>
+    <Courses />
+  </Provider>
+);
+```
+
+---
+
+## 5. What Does the State Look Like?
+
+After adding a course:
+
+```js
+{
+  courses: {
+    ids: [1],
+
+    entities: {
+      1: {
+        id: 1,
+        title: "JavaScript",
+        teacher: "Kamal"
+      }
+    }
+  }
+}
+```
+
+The Entity Adapter manages both `ids` and `entities` for us.
+
+---
+
+## 6. Entity Adapter Selectors
+
+```js
+// Get all courses
+coursesSelectors.selectAll(state);
+
+// Get one course by ID
+coursesSelectors.selectById(state, 1);
+
+// Get all IDs
+coursesSelectors.selectIds(state);
+
+// Get total number of courses
+coursesSelectors.selectTotal(state);
+```
+
+`getSelectors()` gives us the ready-to-use selectors provided by the Entity Adapter.
+
+---
+
+## 7. CRUD Flow
+
+```text
+createEntityAdapter()
+        ↓
+getInitialState()
+        ↓
+createSlice()
+        ↓
+CRUD reducers
+        ↓
+Redux Store
+        ↓
+dispatch()
+        ↓
+ids + entities
+        ↓
+getSelectors()
+        ↓
+useSelector()
+        ↓
+React Component
+```
+
+## Main Idea
+
+Entity Adapter helps us manage normalized collections.
+
+It gives us:
+
+- `ids + entities`
+- Ready-to-use CRUD reducers
+- Ready-to-use selectors
+- Easy access to entities by ID
+
+It is useful when we have collections such as:
+
+`courses`, `users`, `products`, `students`, etc.

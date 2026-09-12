@@ -885,3 +885,340 @@ RTK Query Cache
     ↓
 Component
 ```
+
+# Normalized State & Entity Adapter
+
+## 1. What is Normalized State?
+
+Normalized State is a way to organize collections of data in Redux.
+
+Instead of storing data as a normal array:
+
+const users = [
+  { id: 1, name: "Kamal" },
+  { id: 2, name: "Ahmed" },
+  { id: 3, name: "Ali" }
+];
+
+we can store it in a normalized structure:
+
+{
+  ids: [1, 2, 3],
+  entities: {
+    1: { id: 1, name: "Kamal" },
+    2: { id: 2, name: "Ahmed" },
+    3: { id: 3, name: "Ali" }
+  }
+}
+
+The state has two main parts:
+
+- `ids`: contains all entity IDs.
+- `entities`: contains the entities using their IDs as keys.
+
+This makes large collections easier to manage.
+
+## 2. Why Do We Use Normalized State?
+
+With a normal array, finding one item usually requires searching the array:
+
+users.find(user => user.id === 2);
+
+Updating an item may also require creating a new array:
+
+users.map(...);
+
+For large collections with many updates, this can make the state harder to manage.
+
+Normalized State gives each entity one clear place and makes accessing and updating entities easier.
+
+It is especially useful for:
+
+- Large collections
+- Frequent CRUD operations
+- Data with relationships
+- Avoiding duplicated entities
+- Easier updates
+- Easier access by ID
+
+Examples of useful collections:
+
+- Users
+- Posts
+- Products
+- Courses
+- Comments
+- Messages
+- Notifications
+
+## 3. What is Entity Adapter?
+
+`createEntityAdapter()` is a Redux Toolkit tool for managing normalized collections.
+
+It helps us work with the `ids + entities` structure without writing all the logic manually.
+
+Instead of manually creating:
+
+{
+  ids: [],
+  entities: {}
+}
+
+and manually writing reducers for adding, updating, and removing items, Entity Adapter provides ready-to-use methods.
+
+## 4. Creating an Entity Adapter
+
+We create an adapter like this:
+
+const usersAdapter = createEntityAdapter();
+
+The adapter can manage a collection of users and provides useful methods and selectors.
+
+## 5. Initial State
+
+The adapter can create the normalized initial state:
+
+const initialState = usersAdapter.getInitialState();
+
+It creates:
+
+{
+  ids: [],
+  entities: {}
+}
+
+When entities are added, they are stored inside this structure automatically.
+
+## 6. Entity Adapter CRUD Methods
+
+Entity Adapter provides methods for common operations.
+
+### `addOne`
+
+Adds one entity:
+
+usersAdapter.addOne(state, user);
+
+### `addMany`
+
+Adds multiple entities:
+
+usersAdapter.addMany(state, users);
+
+### `setOne`
+
+Adds an entity or replaces the existing entity with the same ID:
+
+usersAdapter.setOne(state, user);
+
+### `setAll`
+
+Replaces the entire collection:
+
+usersAdapter.setAll(state, users);
+
+This is useful when receiving a full list from an API.
+
+### `updateOne`
+
+Updates one entity:
+
+usersAdapter.updateOne(state, {
+  id: 1,
+  changes: {
+    name: "New Name"
+  }
+});
+
+### `removeOne`
+
+Removes one entity by ID:
+
+usersAdapter.removeOne(state, 1);
+
+### `removeMany`
+
+Removes multiple entities:
+
+usersAdapter.removeMany(state, [1, 2, 3]);
+
+### `removeAll`
+
+Removes all entities:
+
+usersAdapter.removeAll(state);
+
+## 7. Entity Adapter with createSlice
+
+Entity Adapter works very well with `createSlice`.
+
+Example:
+
+const usersAdapter = createEntityAdapter();
+
+const usersSlice = createSlice({
+  name: "users",
+  initialState: usersAdapter.getInitialState(),
+  reducers: {
+    userAdded: usersAdapter.addOne,
+    usersAdded: usersAdapter.addMany,
+    userUpdated: usersAdapter.updateOne,
+    userRemoved: usersAdapter.removeOne,
+    usersCleared: usersAdapter.removeAll
+  }
+});
+
+The adapter methods can be used directly as reducers.
+
+This removes a lot of repeated CRUD code.
+
+## 8. Entity Selectors
+
+Entity Adapter can also create selectors for us.
+
+We can create them with:
+
+const usersSelectors = usersAdapter.getSelectors(
+  state => state.users
+);
+
+Now we get useful selectors.
+
+### `selectAll`
+
+Returns all entities:
+
+usersSelectors.selectAll(state);
+
+### `selectById`
+
+Returns one entity by ID:
+
+usersSelectors.selectById(state, 1);
+
+### `selectIds`
+
+Returns all entity IDs:
+
+usersSelectors.selectIds(state);
+
+### `selectTotal`
+
+Returns the number of entities:
+
+usersSelectors.selectTotal(state);
+
+These selectors save us from writing common selectors manually.
+
+## 9. `sortComparer`
+
+Entity Adapter can also keep entities sorted.
+
+Example:
+
+const usersAdapter = createEntityAdapter({
+  sortComparer: (a, b) =>
+    a.name.localeCompare(b.name)
+});
+
+Now the entities can be kept sorted by their names.
+
+## 10. Normalized State vs Entity Adapter
+
+These two concepts are related but they are not the same.
+
+### Normalized State
+
+Normalized State is the idea or data structure:
+
+{
+  ids: [],
+  entities: {}
+}
+
+It describes how the data is organized.
+
+### Entity Adapter
+
+Entity Adapter is a Redux Toolkit tool that helps us create and manage this structure.
+
+It provides:
+
+- Initial state
+- CRUD operations
+- Selectors
+- Optional sorting
+
+So:
+
+Normalized State = How we organize the data.
+
+Entity Adapter = The tool that helps us manage that data.
+
+## 11. Do We Always Need Entity Adapter?
+
+No.
+
+Entity Adapter is not required for every array in a Redux application.
+
+For small or simple collections, a normal array can be easier and clearer.
+
+For example:
+
+const cart = [
+  { id: 1, name: "Laptop" },
+  { id: 2, name: "Mouse" }
+];
+
+You do not need Entity Adapter just because the data has IDs.
+
+Use Entity Adapter when the collection benefits from:
+
+- Many CRUD operations
+- Frequent updates
+- Large collections
+- Accessing entities by ID
+- Normalized data management
+
+## 12. Why Is This Useful?
+
+The main goal is not only performance.
+
+The main benefits are:
+
+- Better data organization
+- Less duplicated data
+- Easier updates
+- Easier CRUD operations
+- Easy access by ID
+- Reusable selectors
+- Less reducer boilerplate
+- Better management of large collections
+
+Entity Adapter does not magically make every application faster.
+
+Its main value is giving us a clean and efficient way to manage collections of entities.
+
+## 13. Main Idea
+
+Think about it like this:
+
+Normalized State
+        ↓
+A way to organize data
+        ↓
+ids + entities
+        ↓
+Entity Adapter
+        ↓
+Redux Toolkit tool
+        ↓
+CRUD + Selectors + Sorting
+
+In short:
+
+Normalized State tells us how to structure the data.
+
+Entity Adapter gives us tools to manage that structure.
+
+Together, they are very useful when working with large or frequently changing collections in Redux Toolkit.

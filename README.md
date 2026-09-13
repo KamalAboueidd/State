@@ -1479,3 +1479,360 @@ It gives us:
 It is useful when we have collections such as:
 
 `courses`, `users`, `products`, `students`, etc.
+
+
+# Redux Toolkit — Project Architecture
+
+Project Architecture is about organizing Redux code in a scalable way.
+
+Instead of putting everything in one large file, we organize code by features and responsibilities.
+
+---
+
+## 1. Slices Organization
+
+Each feature should have its own slice.
+
+Example:
+
+```text
+src/
+├── app/
+│   └── store.js
+│
+├── features/
+│   ├── auth/
+│   │   ├── authSlice.js
+│   │   └── authSelectors.js
+│   │
+│   ├── courses/
+│   │   ├── coursesSlice.js
+│   │   └── coursesSelectors.js
+│   │
+│   └── cart/
+│       ├── cartSlice.js
+│       └── cartSelectors.js
+```
+
+This keeps related Redux logic together.
+
+### Feature Slice
+
+```js
+// features/courses/coursesSlice.js
+
+import {
+  createSlice,
+  createEntityAdapter
+} from "@reduxjs/toolkit";
+
+// Create an adapter for course data
+export const coursesAdapter =
+  createEntityAdapter();
+
+const coursesSlice = createSlice({
+  name: "courses",
+
+  // Create normalized initial state
+  initialState: coursesAdapter.getInitialState(),
+
+  reducers: {
+    // Add one course
+    courseAdded: coursesAdapter.addOne,
+
+    // Update one course
+    courseUpdated: coursesAdapter.updateOne,
+
+    // Remove one course
+    courseRemoved: coursesAdapter.removeOne
+  }
+});
+
+// Export generated actions
+export const {
+  courseAdded,
+  courseUpdated,
+  courseRemoved
+} = coursesSlice.actions;
+
+export default coursesSlice.reducer;
+```
+
+---
+
+## 2. Store Organization
+
+The `store.js` file collects the reducers from different features.
+
+```js
+// app/store.js
+
+import { configureStore } from "@reduxjs/toolkit";
+
+import authReducer from "../features/auth/authSlice";
+import coursesReducer from "../features/courses/coursesSlice";
+import cartReducer from "../features/cart/cartSlice";
+
+// Create the main Redux store
+export const store = configureStore({
+  reducer: {
+    // Auth state
+    auth: authReducer,
+
+    // Courses state
+    courses: coursesReducer,
+
+    // Cart state
+    cart: cartReducer
+  }
+});
+```
+
+The Store does not contain the feature logic.
+
+It only combines the reducers into one Redux Store.
+
+```text
+authSlice ──────┐
+coursesSlice ───┼──> store.js ──> Redux Store
+cartSlice ──────┘
+```
+
+---
+
+# 3. API Organization
+
+For RTK Query, we can use one main API service and inject endpoints from different features.
+
+This keeps the API organized without creating a separate RTK Query service for every feature.
+
+---
+
+## Base API
+
+```js
+// services/api.js
+
+import {
+  createApi,
+  fetchBaseQuery
+} from "@reduxjs/toolkit/query/react";
+
+// Create the main API service
+export const api = createApi({
+  reducerPath: "api",
+
+  // Common base configuration
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api"
+  }),
+
+  // Tags used for cache management
+  tagTypes: [
+    "Courses",
+    "Users",
+    "Auth"
+  ],
+
+  // Endpoints are injected by features
+  endpoints: () => ({})
+});
+```
+
+The base API contains the common configuration.
+
+---
+
+## Courses API
+
+```js
+// features/courses/coursesApi.js
+
+import { api } from "../../services/api";
+
+// Add course endpoints to the main API
+export const coursesApi = api.injectEndpoints({
+  endpoints: (builder) => ({
+
+    // Fetch all courses
+    getCourses: builder.query({
+      query: () => "/courses",
+
+      // Mark returned data with Courses tag
+      providesTags: ["Courses"]
+    }),
+
+    // Add a new course
+    addCourse: builder.mutation({
+      query: (course) => ({
+        url: "/courses",
+        method: "POST",
+        body: course
+      }),
+
+      // Mark courses cache as stale
+      invalidatesTags: ["Courses"]
+    })
+  })
+});
+
+// Export generated hooks
+export const {
+  useGetCoursesQuery,
+  useAddCourseMutation
+} = coursesApi;
+```
+
+---
+
+## Users API
+
+```js
+// features/users/usersApi.js
+
+import { api } from "../../services/api";
+
+// Add user endpoints to the main API
+export const usersApi = api.injectEndpoints({
+  endpoints: (builder) => ({
+
+    // Fetch all users
+    getUsers: builder.query({
+      query: () => "/users",
+
+      // Mark returned data with Users tag
+      providesTags: ["Users"]
+    }),
+
+    // Fetch one user by ID
+    getUserById: builder.query({
+      query: (id) => `/users/${id}`
+    })
+  })
+});
+
+// Export generated hooks
+export const {
+  useGetUsersQuery,
+  useGetUserByIdQuery
+} = usersApi;
+```
+
+---
+
+## 4. Add RTK Query to the Store
+
+Even though endpoints are split between features, they use the same main API service.
+
+```js
+// app/store.js
+
+import { configureStore } from "@reduxjs/toolkit";
+
+import { api } from "../services/api";
+
+import authReducer from "../features/auth/authSlice";
+import coursesReducer from "../features/courses/coursesSlice";
+
+export const store = configureStore({
+  reducer: {
+    // Feature reducers
+    auth: authReducer,
+    courses: coursesReducer,
+
+    // RTK Query reducer
+    [api.reducerPath]: api.reducer
+  },
+
+  // Add RTK Query middleware
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(
+      api.middleware
+    )
+});
+```
+
+---
+
+## API Architecture
+
+```text
+services/
+└── api.js
+      │
+      ├── coursesApi.js
+      │
+      ├── usersApi.js
+      │
+      └── authApi.js
+             │
+             ↓
+         One API Service
+             ↓
+           Store
+```
+
+The important idea is:
+
+- One main RTK Query API service.
+- Features inject their own endpoints.
+- Each feature keeps its API logic close to its feature.
+- The Store combines the feature reducers and the main API reducer.
+
+---
+
+## Recommended Structure
+
+```text
+src/
+├── app/
+│   └── store.js
+│
+├── services/
+│   └── api.js
+│
+├── features/
+│   ├── auth/
+│   │   ├── authSlice.js
+│   │   ├── authSelectors.js
+│   │   └── authApi.js
+│   │
+│   ├── courses/
+│   │   ├── coursesSlice.js
+│   │   ├── coursesSelectors.js
+│   │   └── coursesApi.js
+│   │
+│   └── users/
+│       ├── usersSlice.js
+│       └── usersApi.js
+│
+└── components/
+```
+
+### Main Idea
+
+A scalable Redux architecture usually follows these rules:
+
+```text
+Feature
+  ↓
+Own Slice
+  ↓
+Own Selectors
+  ↓
+Own API Endpoints
+```
+
+While:
+
+```text
+app/store.js
+```
+
+combines the Redux reducers, and:
+
+```text
+services/api.js
+```
+
+contains the main RTK Query API configuration.

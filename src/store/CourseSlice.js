@@ -7,7 +7,7 @@ const CourseSlice = createSlice({
     initialState,
     reducers: {
         courseAdded: courseAdapter.addOne,
-        courseAdded: courseAdapter.addMany,
+        courseMany: courseAdapter.addMany,
         courseUpdated: courseAdapter.updateOne,
         courseDeleted: courseAdapter.removeOne,
         courseAllRemoved: courseAdapter.removeAll,

@@ -19,8 +19,8 @@ Zustand is a fast, lightweight state management library for React. It provides a
 
 ![Zustand](zustand-vs-redux-toolkit-for-react-state-managemen-1770720374772.png)
 ![Zustand](zustand.webp)
-![Zustand](zustand1.png)
-![Zustand](zustand2.png)
+![Zustand](Zustand1.png)
+![Zustand](Zustand2.png)
 
 ## Creating a Store & Updating State
 Use `create` to define state values and action methods. Zustand provides `set` for state updates (merging shallowly by default, so you don't need to spread unmodified state).
@@ -164,6 +164,8 @@ useStore.subscribe(
 
 # Redux Toolkit (RTK) Notes
 
+![Redux Toolkit Data Flow](redux-toolkit-data-flow.jpg)
+
 ## 1. Redux Fundamentals
 Redux manages shared global state through a predictable unidirectional flow:
 **UI** → `dispatch(action)` → **Reducer** → **State Update** → **UI Re-render**
@@ -301,6 +303,8 @@ const postsSlice = createSlice({
 
 RTK Query eliminates the need for manual `useEffect`, `useState`, and `createAsyncThunk` boilerplate for data fetching. It manages loading states, caching, deduplication, and automatic refetching out of the box.
 
+![RTK Query Architecture & Caching](rtk-query-architecture-cache.jpg)
+
 ### Complete Working Example
 
 #### 1. API Slice (`store/apiSlice.js`)
@@ -391,6 +395,8 @@ function AddPost() {
 ---
 
 # Normalized State & Entity Adapter
+
+![Normalized State & Entity Adapter](normalized-state-entity-adapter.jpg)
 
 ## 1. What & Why?
 Storing lists as flat arrays (`[{ id: 1 }, { id: 2 }]`) causes slow searches ($O(N)$ with `.find()`) and messy updates. **Normalized State** organizes items by ID:

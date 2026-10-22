@@ -1,5 +1,15 @@
-# DirectState-Management
-> Comprehensive guide for state management in React: **Zustand**, **Redux Toolkit (RTK)**, **RTK Query**, **Entity Adapter**, and scalable **Project Architecture**.
+# State Management in React
+
+![Language](https://img.shields.io/badge/Language-JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Framework](https://img.shields.io/badge/Framework-React-61DAFB?logo=react&logoColor=black)
+![Topics](https://img.shields.io/badge/Topics-State%20Management%20in%20React-orange)
+![Status](https://img.shields.io/badge/Status-Active%20Learning-brightgreen)
+
+Welcome to my **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions (**Zustand**, **Redux Toolkit**, **RTK Query**, and **Entity Adapter**).
+
+> **Author:** Kamal Aboueid  
+> **Topics:** State Management in React  
+> **Status:** Active Learning & Hands-on Reference
 
 ---
 

@@ -398,100 +398,228 @@ function AddPost() {
 
 ![Normalized State & Entity Adapter](normalized-state-entity-adapter.jpg)
 
-## 1. What & Why?
-Storing lists as flat arrays (`[{ id: 1 }, { id: 2 }]`) causes slow searches ($O(N)$ with `.find()`) and messy updates. **Normalized State** organizes items by ID:
+## 1. The Core Problem: Why Do We Need Normalization?
 
-```json
-{
-  "ids": [1, 2, 3],
-  "entities": {
-    "1": { "id": 1, "title": "JavaScript" },
-    "2": { "id": 2, "title": "React" },
-    "3": { "id": 3, "title": "Redux" }
-  }
-}
+When managing large collections of data (e.g. hundreds or thousands of users or posts) as standard flat arrays (`[{ id: 1 }, { id: 2 }, ...]`), two major problems arise:
+
+1. **Performance Bottleneck ($O(N)$ Search Time):**
+   - Finding, updating, or deleting an item requires looping through the array with `array.find()` or `array.filter()`.
+   - On large datasets, this linear search takes **$O(N)$ time** and slows down the app.
+
+2. **Update Complexity & Unnecessary Re-renders:**
+   - In Redux, state is immutable. Modifying one single item in a flat array requires creating a new copy of the entire array.
+   - This changes the reference of the whole list, triggering unnecessary re-renders across components even if their item didn't change.
+
+---
+
+## 2. The Solution: Normalized State Concept
+
+**Normalized State** organizes unstructured lists into a clean two-part structure (similar to a database table):
+
+1. **`ids` (Order Array):** An array of ID keys keeping the exact display order:
+   ```json
+   [1, 2, 3]
+   ```
+2. **`entities` (Lookup Dictionary):** An object map where each key is an ID and value is the full item data:
+   ```json
+   {
+     "1": { "id": 1, "name": "Leanne Graham", "email": "sincere@april.biz" },
+     "2": { "id": 2, "name": "Ervin Howell", "email": "shanna@melissa.tv" }
+   }
+   ```
+
+> **Key Benefit:** Accessing, updating, or deleting any item is instant at **$O(1)$ time complexity** (`state.entities[id]`), without scanning through the array!
+
+---
+
+## 3. What is `createEntityAdapter`?
+
+`createEntityAdapter` is an official utility provided by **Redux Toolkit** to manage normalized state with zero manual boilerplate.
+
+### What it provides:
+- **Standard Initial State:** Generates `{ ids: [], entities: {} }` plus your custom fields (e.g. `loading`, `error`).
+- **Built-in CRUD Reducers:** Ready-to-use reducer methods for adding, updating, and removing items.
+- **Automatic Sorting:** Keeps the `ids` array sorted at all times using `sortComparer`.
+- **Pre-generated Memoized Selectors:** High-performance selectors (`selectAll`, `selectById`, etc.) ready for `useSelector`.
+
+```mermaid
+flowchart LR
+    subgraph Reducers["CRUD Reducers (Write)"]
+        direction TB
+        R1["setAll / setMany"]
+        R2["addOne / addMany"]
+        R3["updateOne / updateMany"]
+        R4["upsertOne / upsertMany"]
+        R5["removeOne / removeAll"]
+    end
+
+    subgraph State["Normalized Store"]
+        direction TB
+        ID["ids: [1, 2, 3] (Sorted Order)"]
+        ENT["entities: { 1: {...}, 2: {...} } (O(1) Map)"]
+    end
+
+    subgraph Selectors["Memoized Selectors (Read)"]
+        direction TB
+        S1["selectAll -> Sorted Array for UI"]
+        S2["selectById -> O(1) Direct Lookup"]
+        S3["selectIds -> Array of IDs"]
+        S4["selectEntities -> Dictionary Map"]
+        S5["selectTotal -> Total Items Count"]
+    end
+
+    Reducers -->|Mutate & Sort| State
+    State -->|Extract & Memoize| Selectors
 ```
 
-`createEntityAdapter()` is an RTK utility that generates the normalized state shape, CRUD reducers, and memoized selectors automatically.
+---
 
-## 2. CRUD Methods & Selectors Reference
-| Method / Selector | Purpose |
-| :--- | :--- |
-| `adapter.getInitialState()` | Returns `{ ids: [], entities: {} }` |
-| `adapter.addOne` / `addMany` | Inserts single or multiple items |
-| `adapter.setOne` / `setAll` | Inserts or replaces items / replaces entire list |
-| `adapter.updateOne` | Updates an item by ID using `{ id, changes }` |
-| `adapter.removeOne` / `removeAll` | Deletes single item by ID / clears collection |
-| `selectors.selectAll` | Returns all items as an array |
-| `selectors.selectById` | Returns one item by ID in $O(1)$ time |
-| `selectors.selectIds` | Returns array of IDs |
-| `selectors.selectTotal` | Returns total entity count |
+## 4. Built-in CRUD Methods Reference
 
-## 3. Complete Entity Adapter Example
+All adapter methods can be used directly as slice reducers or inside `extraReducers`:
 
-```js
-// features/courses/coursesSlice.js
-import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
+| Method | Behavior (Simple English) | Time Complexity |
+| :--- | :--- | :---: |
+| `setAll(state, items)` | Clears all existing items and loads a new list in sorted, normalized shape. | $O(N \log N)$ |
+| `setOne(state, item)` | Adds a new item or completely replaces it if it already exists. | $O(1)$ |
+| `setMany(state, items)` | Adds or completely replaces multiple items. | $O(K)$ |
+| `addOne(state, item)` | Adds a single new item. Does nothing if the ID already exists. | $O(1)$ |
+| `addMany(state, items)` | Adds multiple new items at once. | $O(K)$ |
+| `updateOne(state, { id, changes })` | Updates specific fields of an existing item using `{ id, changes }`. | $O(1)$ |
+| `updateMany(state, updates)` | Updates specific fields of multiple existing items. | $O(K)$ |
+| `upsertOne(state, item)` | Smart insert: adds the item if new, or merges updates if it already exists. | $O(1)$ |
+| `upsertMany(state, items)` | Smart insert or update for multiple items at once. | $O(K)$ |
+| `removeOne(state, id)` | Deletes a single item by its ID. | $O(1)$ |
+| `removeMany(state, [ids])` | Deletes multiple items by their IDs. | $O(K)$ |
+| `removeAll(state)` | Empties the entire store (clears `ids` and `entities`). | $O(1)$ |
 
-const coursesAdapter = createEntityAdapter({
-  sortComparer: (a, b) => a.title.localeCompare(b.title),
+---
+
+## 5. Built-in Memoized Selectors Reference
+
+Calling `adapter.getSelectors((state) => state.feature)` generates optimized memoized selectors:
+
+| Selector | Return Value | Common Use Case |
+| :--- | :--- | :--- |
+| `selectAll` | Array of all entity objects in sorted order. | Rendering lists in UI with `.map()`. |
+| `selectById` | Single item object matching given ID, or `undefined`. | Detail view / profile card for one user. |
+| `selectIds` | Array of all IDs (`[1, 2, 3]`). | Checking item existence or ID-only rendering. |
+| `selectEntities` | Dictionary object (`{ [id]: entity }`). | Fast lookups in custom selectors. |
+| `selectTotal` | Total number of items stored. | Showing badge counts (e.g. "Total Users: 10"). |
+
+---
+
+## 6. Complete Practical Example (`Entity.js`)
+
+Here is the complete implementation matching [`src/store/Entity.js`](file:///d:/directState/src/store/Entity.js):
+
+```javascript
+// src/store/Entity.js
+import { createSlice, createEntityAdapter, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
+
+// 1. Create the adapter with auto-sorting by name
+const AllPosts = createEntityAdapter({
+  sortComparer: (a, b) => a.name.localeCompare(b.name), // Automatic sorting based on name
 });
 
-const coursesSlice = createSlice({
-  name: "courses",
-  initialState: coursesAdapter.getInitialState(),
+// 2. Generate initial state with custom flags (loading, error)
+const initialState = AllPosts.getInitialState({
+  loading: false,
+  error: null,
+});
+
+// 3. Async Thunk to fetch data from API
+export const fetchUser = createAsyncThunk("user/fetchUser", async () => {
+  const response = await axios.get("https://jsonplaceholder.typicode.com/users");
+  return response.data;
+});
+
+// 4. Create Slice using built-in adapter methods
+export const AllPostsSlice = createSlice({
+  name: 'AllPosts',
+  initialState,
   reducers: {
-    courseAdded: coursesAdapter.addOne,
-    coursesAdded: coursesAdapter.addMany,
-    courseUpdated: coursesAdapter.updateOne,
-    courseRemoved: coursesAdapter.removeOne,
-    coursesCleared: coursesAdapter.removeAll,
+    // Adapter Built-in Methods maintain sorted order automatically
+    addOne: AllPosts.addOne,
+    addMany: AllPosts.addMany,
+    updateOne: AllPosts.updateOne,
+    removeOne: AllPosts.removeOne,
+    removeAll: AllPosts.removeAll,
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUser.fulfilled, (state, action) => {
+        state.loading = false;
+        // setAll normalizes and sorts all items automatically
+        AllPosts.setAll(state, action.payload);
+      })
+      .addCase(fetchUser.rejected, (state) => {
+        state.loading = false;
+        state.error = "Something Went Wrong";
+      });
   },
 });
 
-export const {
-  courseAdded,
-  coursesAdded,
-  courseUpdated,
-  courseRemoved,
-  coursesCleared,
-} = coursesSlice.actions;
+export const { addOne, addMany, updateOne, removeOne, removeAll } = AllPostsSlice.actions;
+export default AllPostsSlice.reducer;
 
-export const coursesSelectors = coursesAdapter.getSelectors((state) => state.courses);
-export default coursesSlice.reducer;
+// 5. Adapter Built-in Selectors
+export const {
+  selectAll: selectAllPosts,   // returns all posts in sorted array
+  selectById: selectPostById,  // returns post by id in O(1)
+  selectIds: selectPostIds,    // returns all ids
+} = AllPosts.getSelectors((state) => state.AllPosts);
 ```
 
-```jsx
-// Courses.jsx
-import { useDispatch, useSelector } from "react-redux";
-import { courseAdded, courseUpdated, courseRemoved, coursesSelectors } from "./coursesSlice";
+### Component Usage Example
 
-function Courses() {
+```jsx
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { 
+  fetchUser, 
+  selectAllPosts, 
+  selectPostById, 
+  removeOne, 
+  updateOne 
+} from './store/Entity';
+
+function UsersComponent() {
   const dispatch = useDispatch();
-  const courses = useSelector(coursesSelectors.selectAll);
+  const users = useSelector(selectAllPosts);
+  const { loading, error } = useSelector((state) => state.AllPosts);
+
+  useEffect(() => {
+    dispatch(fetchUser());
+  }, [dispatch]);
+
+  if (loading) return <h2>Loading...</h2>;
+  if (error) return <h2>{error}</h2>;
 
   return (
     <div>
-      <button onClick={() => dispatch(courseAdded({ id: 1, title: "JavaScript", teacher: "Kamal" }))}>
-        Add Course
-      </button>
-      <button onClick={() => dispatch(courseUpdated({ id: 1, changes: { title: "Advanced JS" } }))}>
-        Update Course
-      </button>
-      <button onClick={() => dispatch(courseRemoved(1))}>Delete Course</button>
-
-      <h2>Courses List</h2>
-      {courses.map((course) => (
-        <div key={course.id}>
-          <h3>{course.title}</h3>
-          <p>Teacher: {course.teacher}</p>
-        </div>
-      ))}
+      <h2>Users List (Sorted by Name)</h2>
+      <ul>
+        {users.map((user) => (
+          <li key={user.id}>
+            <strong>{user.name}</strong> — {user.email}
+            <button onClick={() => dispatch(removeOne(user.id))}>Delete</button>
+            <button onClick={() => dispatch(updateOne({ id: user.id, changes: { name: `${user.name} (Updated)` } }))}>
+              Update
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-export default Courses;
+export default UsersComponent;
 ```
 
 ---

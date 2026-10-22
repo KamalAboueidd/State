@@ -5,7 +5,7 @@
 ![Topics](https://img.shields.io/badge/Topics-State%20Management%20in%20React-orange)
 ![Status](https://img.shields.io/badge/Status-Active%20Learning-brightgreen)
 
-Welcome to my **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions (**Zustand**, **Redux Toolkit**, **RTK Query**, and **Entity Adapter**).
+ **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions (**Zustand**, **Redux Toolkit**, **RTK Query**, and **Entity Adapter** and More ...).
 
 > **Author:** Kamal Aboueid  
 > **Topics:** State Management in React  

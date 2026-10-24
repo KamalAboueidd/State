@@ -3,12 +3,18 @@
 ![Language](https://img.shields.io/badge/Language-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Framework](https://img.shields.io/badge/Framework-React-61DAFB?logo=react&logoColor=black)
 ![Topics](https://img.shields.io/badge/Topics-State%20Management%20in%20React-orange)
+![Client State](https://img.shields.io/badge/Client%20State-Zustand%20%7C%20Redux%20Toolkit-8A2BE2)
+![Server State](https://img.shields.io/badge/Server%20State-React%20Query%20%7C%20RTK%20Query-FF4154?logo=reactquery&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active%20Learning-brightgreen)
 
- **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions (**Zustand**, **Redux Toolkit**, **RTK Query**, and **Entity Adapter** and More ...).
+ **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions, categorized into:
+- **Client State**: Managing local synchronous application UI data (**Zustand**, **Redux Toolkit**, **Entity Adapter**).
+- **Server State**: Managing asynchronous remote data fetching, caching, and synchronization (**TanStack React Query**, **RTK Query**).
 
 > **Author:** Kamal Aboueid  
 > **Topics:** State Management in React  
+> **Client State:** Zustand • Redux Toolkit  
+> **Server State:** TanStack React Query • RTK Query  
 > **Status:** Active Learning & Hands-on Reference
 
 ---

@@ -706,3 +706,221 @@ export const store = configureStore({
 ```
 
 > **Key Rule:** Features own their domain logic (`Slice` + `Selectors` + `Endpoints`), while `store.js` and `api.js` act as the glue combining them.
+
+---
+
+# TanStack React Query
+
+**TanStack Query (React Query)** is a powerful server-state management library for React. It manages asynchronous server state, smart caching, background synchronization, deduplication, and loading/error states with minimal code.
+
+## 1. Setup & Configuration
+
+### `queryClient.js`
+Define a centralized `QueryClient` instance to set default behaviors across all queries:
+
+```js
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,    // Data remains fresh for 5 minutes (no background refetch during this time)
+      refetchOnWindowFocus: false, // Prevents automatic refetch when the user refocuses the browser window
+      retry: 3,                    // Automatically retries failed queries up to 3 times
+    },
+  },
+});
+```
+
+### Wrapping the Application (`main.jsx`)
+Wrap the React root with `QueryClientProvider` and activate `ReactQueryDevtools`:
+
+```jsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "./react-query/queryClient.js";
+import App from "./App.jsx";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  </StrictMode>
+);
+```
+
+---
+
+## 2. The `useQuery` Hook Anatomy
+
+The `useQuery` hook is the core API for fetching and subscribing to server state:
+
+```js
+const { 
+  data, 
+  isLoading, 
+  isFetching, 
+  isError, 
+  error, 
+  refetch 
+} = useQuery({
+  queryKey: ["products"],
+  queryFn: fetchProducts, // Function returning a Promise (fetch or axios)
+});
+```
+
+### Core Return Values
+- **`data`**: The resolved data returned from `queryFn`.
+- **`isLoading`**: `true` only during the **initial request** when there is **no cached data** in memory yet.
+- **`isFetching`**: `true` whenever an active network request is in flight (initial fetch + any background refetch).
+- **`isError`**: `true` if the query failed.
+- **`error`**: The error object caught during the rejected request.
+- **`refetch`**: Function to trigger an immediate manual refetch on-demand (e.g., button click).
+
+---
+
+## 3. Deep Dive: `isLoading` vs `isFetching`
+
+Understanding the difference between `isLoading` and `isFetching` is the core secret behind React Query's cache-first user experience:
+
+```mermaid
+graph TD
+    A["User Visits Screen"] --> B{"Is Data in Cache?"}
+    
+    B -- "NO (Empty Cache)" --> C["Initial Fetch"]
+    C --> D["isLoading = true<br>isFetching = true"]
+    D --> E["Show Loading Skeleton / Spinner"]
+    E --> F["Data Arrives from Server"]
+    F --> G["Store in Cache & Render Data<br>isLoading = false<br>isFetching = false"]
+
+    B -- "YES (Data in Cache)" --> H["Cache Hit"]
+    H --> I["isLoading = false<br>Render Cached Data Instantly!"]
+    I --> J{"Is Cache Stale?"}
+    J -- "YES" --> K["Silent Background Refetch<br>isFetching = true"]
+    K --> L["Background Request Complete<br>Update Cache & UI Silently<br>isFetching = false"]
+    J -- "NO (Fresh)" --> M["No Network Request Needed!"]
+```
+
+### Comparison Matrix
+
+| State | Initial Fetch (Empty Cache) | Background Refetch (Data Already in Cache) |
+|---|---|---|
+| **`isLoading`** | `true` | `false` |
+| **`isFetching`** | `true` | `true` |
+| **User Experience** | Shows full-page loading skeleton/spinner | Displays cached data instantly while silently updating in the background |
+
+```jsx
+// 1. Initial load (no cache available)
+if (isLoading) {
+  return <h2>Loading products for the first time...</h2>;
+}
+
+// 2. Data is rendered, but shows background sync indicator if active
+return (
+  <div>
+    {isFetching && <p style={{ color: "blue" }}>Updating in background...</p>}
+    <ProductList items={data} />
+  </div>
+);
+```
+
+---
+
+## 4. The Power of `queryKey`
+
+The `queryKey` is the unique cache identifier — the key to the safe where React Query stores your data:
+
+```mermaid
+graph LR
+    subgraph ClientNavigation["Client Navigation"]
+        P1["Post 1 View<br>queryKey: ['post', 1]"] --> P2["Post 2 View<br>queryKey: ['post', 2]"]
+        P2 --> P1Back["Return to Post 1<br>queryKey: ['post', 1]"]
+    end
+
+    subgraph CacheStore["React Query In-Memory Cache"]
+        K1["Key: ['post', 1] -> Cached Post 1 Data"]
+        K2["Key: ['post', 2] -> Cached Post 2 Data"]
+    end
+
+    P1 -- "Network Fetch" --> K1
+    P2 -- "Network Fetch" --> K2
+    P1Back -- "INSTANT RETRIEVAL (0ms Delay!)" --> K1
+```
+
+### Why does `queryKey` take an Array?
+1. **Parameterization**: Queries almost always depend on dynamic IDs, filters, or pagination:
+   ```js
+   useQuery({
+     queryKey: ["post", postId],
+     queryFn: () => fetchPostById(postId),
+   });
+   ```
+2. **Dynamic Key Tracking & Zero-Latency Cache Retrieval**:
+   - When the user navigates from `postId = 1` to `postId = 2`, React Query detects that the key changed from `["post", 1]` to `["post", 2]`.
+   - It fetches the new data and stores it under `["post", 2]`.
+   - When the user navigates **back** to `postId = 1`, React Query retrieves it **instantly from the cache** without an immediate network call!
+3. **Manual Refetch**:
+   - Calling `refetch()` triggers an on-demand re-fetch when requested by the user.
+
+---
+
+## 5. Practical Implementation Example (`QueryClintExample.jsx`)
+
+```jsx
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
+const fetchProducts = async () => {
+  const response = await axios.get("https://jsonplaceholder.typicode.com/posts");
+  return response.data;
+};
+
+export default function ProductsComponent() {
+  const {
+    data: products,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts,
+  });
+
+  if (isLoading) {
+    return <h2>Loading products for the first time...</h2>;
+  }
+
+  if (isError) {
+    return <h2 style={{ color: "red" }}>Error: {error.message}</h2>;
+  }
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <h1>Products List (Cached Data)</h1>
+
+      {isFetching && <p style={{ color: "blue" }}>Updating in background...</p>}
+
+      <button onClick={() => refetch()} style={{ marginBottom: "15px" }}>
+        Manual Refetch
+      </button>
+
+      <ul>
+        {products?.slice(0, 5).map((product) => (
+          <li key={product.id}>
+            <strong>{product.title}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+
+

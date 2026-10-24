@@ -717,7 +717,26 @@ export const store = configureStore({
 
 # TanStack React Query
 
-**TanStack Query (React Query)** is a powerful server-state management library for React. It manages asynchronous server state, smart caching, background synchronization, deduplication, and loading/error states with minimal code.
+**TanStack Query (React Query)** is a powerful server-state management library for React. It manages asynchronous server data, caching, background synchronization, deduplication, and loading/error states with minimal code.
+
+```mermaid
+graph LR
+    subgraph ClientState["Client State (UI)"]
+        CS1["Modal open/close"]
+        CS2["Dark/Light Theme"]
+        CS3["Form inputs"]
+        CS4["Tool: Zustand / Redux"]
+    end
+
+    subgraph ServerState["Server State (Remote)"]
+        SS1["Database records (Posts, Todos)"]
+        SS2["Async fetching & Caching"]
+        SS3["Background sync & Stale time"]
+        SS4["Tool: TanStack React Query"]
+    end
+```
+
+---
 
 ## 1. Setup & Configuration
 
@@ -731,6 +750,7 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,    // Data remains fresh for 5 minutes (no background refetch during this time)
+      gcTime: 1000 * 60 * 10,      // Unused cache stays in memory for 10 minutes before Garbage Collection
       refetchOnWindowFocus: false, // Prevents automatic refetch when the user refocuses the browser window
       retry: 3,                    // Automatically retries failed queries up to 3 times
     },
@@ -761,37 +781,63 @@ createRoot(document.getElementById("root")).render(
 
 ---
 
-## 2. The `useQuery` Hook Anatomy
+## 2. Advanced `useQuery` Anatomy (Fetching & Reading Data)
 
-The `useQuery` hook is the core API for fetching and subscribing to server state:
+The `useQuery` hook manages reading, caching, and auto-syncing remote data.
 
 ```js
-const { 
-  data, 
-  isLoading, 
-  isFetching, 
-  isError, 
-  error, 
-  refetch 
+const {
+  data: todos,
+  isLoading,
+  isError,
+  error,
+  isFetching,
+  isStale,
+  status,
+  fetchStatus,
+  refetch,
+  dataUpdatedAt,
 } = useQuery({
-  queryKey: ["products"],
-  queryFn: fetchProducts, // Function returning a Promise (fetch or axios)
+  queryKey: ["todos", filter],
+  queryFn: fetchTodos,
+  staleTime: 1000 * 60 * 2,    // 2 minutes fresh
+  gcTime: 1000 * 60 * 10,      // 10 minutes cache retention
+  refetchOnWindowFocus: true,  // Auto refetch on tab focus
+  retry: 3,                    // Retry 3 times on failure
+  retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000), // Exponential backoff
+  select: (data) => data.map(todo => ({ ...todo, titleUpper: todo.title.toUpperCase() })),
 });
 ```
 
-### Core Return Values
-- **`data`**: The resolved data returned from `queryFn`.
-- **`isLoading`**: `true` only during the **initial request** when there is **no cached data** in memory yet.
-- **`isFetching`**: `true` whenever an active network request is in flight (initial fetch + any background refetch).
-- **`isError`**: `true` if the query failed.
-- **`error`**: The error object caught during the rejected request.
-- **`refetch`**: Function to trigger an immediate manual refetch on-demand (e.g., button click).
+### Advanced `useQuery` Options Explained
+
+| Option | What it does | Simple Example |
+|---|---|---|
+| **`queryKey`** | The unique identifier for this cache entry in memory. Accepts an array with dynamic parameters. | `['todos', filter]` |
+| **`queryFn`** | The async function that fetches data. It automatically receives `{ queryKey }`. | `fetchTodos({ queryKey })` |
+| **`staleTime`** | How long (in ms) the data is considered **fresh**. While fresh, React Query returns cached data without calling the server. | `1000 * 60 * 2` (2 mins) |
+| **`gcTime`** | (Formerly `cacheTime`). How long inactive/unused data stays in memory before being garbage collected. | `1000 * 60 * 10` (10 mins) |
+| **`refetchOnWindowFocus`** | When `true`, refetches fresh data when the user switches tabs and comes back. | `true` |
+| **`retry`** | Number of times to retry a failed request before showing an error. | `3` |
+| **`retryDelay`** | Delay between retries. Can use exponential backoff formula. | `(attempt) => Math.min(1000 * 2 ** attempt, 30000)` |
+| **`select`** | Transforms or filters the data before the component receives it. Saves unnecessary re-renders. | `(data) => data.map(...)` |
+
+### `staleTime` vs `gcTime` Timeline
+
+```mermaid
+timeline
+    title Query Cache Lifecycle (staleTime vs gcTime)
+    Data Fetched : Cache is Fresh (staleTime active) : No background refetch on visit
+    staleTime Expired : Data is Stale : Returns cached data instantly + triggers background refetch
+    Component Unmounted : Data is Inactive : gcTime timer begins counting down
+    gcTime Expired : Garbage Collected : Data permanently removed from memory
+```
 
 ---
 
-## 3. Deep Dive: `isLoading` vs `isFetching`
+## 3. Query Return Properties & States
 
-Understanding the difference between `isLoading` and `isFetching` is the core secret behind React Query's cache-first user experience:
+### `isLoading` vs `isFetching`
 
 ```mermaid
 graph TD
@@ -811,122 +857,439 @@ graph TD
     J -- "NO (Fresh)" --> M["No Network Request Needed!"]
 ```
 
-### Comparison Matrix
+### `status` vs `fetchStatus`
+In TanStack Query v5, states are separated into two distinct dimensions:
+- **`status`**: Represents the **data availability**:
+  - `'pending'`: No data is available yet.
+  - `'error'`: An error happened.
+  - `'success'`: Data was fetched successfully.
+- **`fetchStatus`**: Represents the **network activity**:
+  - `'fetching'`: An active HTTP request is in progress.
+  - `'paused'`: The query wanted to fetch, but there is no internet connection.
+  - `'idle'`: No network request is running right now.
 
-| State | Initial Fetch (Empty Cache) | Background Refetch (Data Already in Cache) |
-|---|---|---|
-| **`isLoading`** | `true` | `false` |
-| **`isFetching`** | `true` | `true` |
-| **User Experience** | Shows full-page loading skeleton/spinner | Displays cached data instantly while silently updating in the background |
-
-```jsx
-// 1. Initial load (no cache available)
-if (isLoading) {
-  return <h2>Loading products for the first time...</h2>;
-}
-
-// 2. Data is rendered, but shows background sync indicator if active
-return (
-  <div>
-    {isFetching && <p style={{ color: "blue" }}>Updating in background...</p>}
-    <ProductList items={data} />
-  </div>
-);
-```
+### Other Useful Properties
+- **`isStale`**: Boolean flag showing if the data has exceeded its `staleTime`.
+- **`dataUpdatedAt`**: Timestamp (number in ms) of when the data was last successfully fetched. Use `new Date(dataUpdatedAt).toLocaleTimeString()` to show the user the last updated time!
+- **`refetch`**: Manual trigger function to force a refetch on demand (e.g. Refresh button).
 
 ---
 
-## 4. The Power of `queryKey`
+## 4. Global Monitoring Hooks
 
-The `queryKey` is the unique cache identifier — the key to the safe where React Query stores your data:
+TanStack Query provides global monitoring hooks to track activity across the entire application:
+
+```js
+import { useIsFetching, useIsMutating } from "@tanstack/react-query";
+
+// 1. Returns number of queries currently fetching anywhere in the app
+const globalIsFetchingCount = useIsFetching();
+
+// 2. Returns number of mutations currently executing anywhere in the app
+const globalIsMutatingCount = useIsMutating();
+```
+
+> **Use Case:** Perfect for displaying global loading spinners, status badges, or network sync bars in your application header.
+
+---
+
+## 5. The Power of `queryKey` & Parameters
+
+The `queryKey` is the unique cache identifier:
 
 ```mermaid
 graph LR
     subgraph ClientNavigation["Client Navigation"]
-        P1["Post 1 View<br>queryKey: ['post', 1]"] --> P2["Post 2 View<br>queryKey: ['post', 2]"]
-        P2 --> P1Back["Return to Post 1<br>queryKey: ['post', 1]"]
+        P1["Filter: 'all'<br>queryKey: ['todos', 'all']"] --> P2["Filter: 'completed'<br>queryKey: ['todos', 'completed']"]
+        P2 --> P1Back["Switch back to 'all'<br>queryKey: ['todos', 'all']"]
     end
 
     subgraph CacheStore["React Query In-Memory Cache"]
-        K1["Key: ['post', 1] -> Cached Post 1 Data"]
-        K2["Key: ['post', 2] -> Cached Post 2 Data"]
+        K1["Key: ['todos', 'all'] -> Cached List 1"]
+        K2["Key: ['todos', 'completed'] -> Cached List 2"]
     end
 
-    P1 -- "Network Fetch" --> K1
-    P2 -- "Network Fetch" --> K2
+    P1 -- "Fetch & Cache" --> K1
+    P2 -- "Fetch & Cache" --> K2
     P1Back -- "INSTANT RETRIEVAL (0ms Delay!)" --> K1
 ```
 
-### Why does `queryKey` take an Array?
-1. **Parameterization**: Queries almost always depend on dynamic IDs, filters, or pagination:
-   ```js
-   useQuery({
-     queryKey: ["post", postId],
-     queryFn: () => fetchPostById(postId),
-   });
-   ```
-2. **Dynamic Key Tracking & Zero-Latency Cache Retrieval**:
-   - When the user navigates from `postId = 1` to `postId = 2`, React Query detects that the key changed from `["post", 1]` to `["post", 2]`.
-   - It fetches the new data and stores it under `["post", 2]`.
-   - When the user navigates **back** to `postId = 1`, React Query retrieves it **instantly from the cache** without an immediate network call!
-3. **Manual Refetch**:
-   - Calling `refetch()` triggers an on-demand re-fetch when requested by the user.
+### Accessing `queryKey` inside `queryFn`:
+You can read parameters directly from `queryKey` inside `queryFn`:
+
+```js
+const fetchTodos = async ({ queryKey }) => {
+  const [, filter] = queryKey; // Extracts 'filter' parameter
+  const response = await axios.get("https://jsonplaceholder.typicode.com/todos", {
+    params: {
+      _limit: 5,
+      completed: filter === "completed" ? true : filter === "active" ? false : undefined,
+    },
+  });
+  return response.data;
+};
+```
 
 ---
 
-## 5. Practical Implementation Example (`QueryClintExample.jsx`)
+## 6. `useMutation` (Creating, Updating & Deleting Data)
 
-```jsx
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+While `useQuery` is for **reading data**, `useMutation` is for **writing data and side effects** (POST, PUT, PATCH, DELETE).
 
-const fetchProducts = async () => {
-  const response = await axios.get("https://jsonplaceholder.typicode.com/posts");
-  return response.data;
-};
+### Core Anatomy of `useMutation`
 
-export default function ProductsComponent() {
-  const {
-    data: products,
-    isLoading,
-    isError,
-    error,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
-  });
-
-  if (isLoading) {
-    return <h2>Loading products for the first time...</h2>;
-  }
-
-  if (isError) {
-    return <h2 style={{ color: "red" }}>Error: {error.message}</h2>;
-  }
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h1>Products List (Cached Data)</h1>
-
-      {isFetching && <p style={{ color: "blue" }}>Updating in background...</p>}
-
-      <button onClick={() => refetch()} style={{ marginBottom: "15px" }}>
-        Manual Refetch
-      </button>
-
-      <ul>
-        {products?.slice(0, 5).map((product) => (
-          <li key={product.id}>
-            <strong>{product.title}</strong>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+```js
+const mutation = useMutation({
+  mutationFn: async (newTodo) => {
+    return await axios.post("/api/todos", newTodo);
+  },
+  onMutate: async (variables) => {
+    // 1. Runs BEFORE mutation executes (used for Optimistic Updates)
+  },
+  onError: (error, variables, context) => {
+    // 2. Runs if mutation fails (rollback local cache)
+  },
+  onSuccess: (data, variables, context) => {
+    // 3. Runs on server success
+  },
+  onSettled: (data, error, variables, context) => {
+    // 4. Runs ALWAYS on finish (like 'finally') -> Invalidate queries!
+  },
+});
 ```
 
+---
 
+## 7. Deep Dive: Optimistic Updates with Rollback
 
+**Optimistic Updates** make your app feel instant. You update the local UI cache immediately before waiting for the server response. If the server request fails, you roll back to the previous snapshot!
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Component as UI Component
+    participant Cache as Query Cache
+    participant Server as Backend API
+
+    User->>Component: Click "Add Task"
+    Component->>Cache: onMutate() -> Cancel refetches & Snapshot previous data
+    Component->>Cache: setQueryData() -> Insert item optimistically (0ms delay!)
+    Cache-->>User: Instant visual update! 
+    Component->>Server: HTTP POST /todos
+    alt Server Success
+        Server-->>Component: 201 Created
+        Component->>Cache: onSettled() -> invalidateQueries(['todos']) (sync with server)
+    else Server Error
+        Server-->>Component: 500 Error
+        Component->>Cache: onError() -> Rollback cache using snapshotted context!
+        Cache-->>User: UI reverts back to previous safe state & shows error alert
+    end
+```
+
+### 3 Practical Mutation Patterns:
+
+### Pattern A: Add Item (POST) with Optimistic Update & Rollback
+```js
+const addMutation = useMutation({
+  mutationFn: (newTodo) => axios.post("/api/todos", newTodo),
+
+  // Step 1: Optimistic Update before request
+  onMutate: async (newTodoVariables) => {
+    await queryClient.cancelQueries({ queryKey: ["todos", filter] });
+    const previousTodos = queryClient.getQueryData(["todos", filter]);
+
+    // Optimistically update cache with temporary ID
+    queryClient.setQueryData(["todos", filter], (old = []) => [
+      { id: Date.now(), title: newTodoVariables.title, completed: false },
+      ...old,
+    ]);
+
+    // Return context with snapshot for rollback
+    return { previousTodos };
+  },
+
+  // Step 2: Rollback on error
+  onError: (err, newTodo, context) => {
+    queryClient.setQueryData(["todos", filter], context.previousTodos);
+    console.error("Mutation failed, rolled back:", err.message);
+  },
+
+  // Step 3: Always re-sync with server
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ["todos"] });
+  },
+
+  onSuccess: () => {
+    setNewTitle("");
+  },
+});
+```
+
+### Pattern B: Update Item (PUT / PATCH)
+```js
+const updateMutation = useMutation({
+  mutationFn: (updatedTodo) =>
+    axios.put(`/api/todos/${updatedTodo.id}`, updatedTodo),
+  onSuccess: () => {
+    // Invalidate query to trigger automatic background refetch
+    queryClient.invalidateQueries({ queryKey: ["todos"] });
+  },
+});
+```
+
+### Pattern C: Delete Item (DELETE) with Optimistic Removal
+```js
+const deleteMutation = useMutation({
+  mutationFn: (id) => axios.delete(`/api/todos/${id}`),
+
+  onMutate: async (deletedId) => {
+    await queryClient.cancelQueries({ queryKey: ["todos", filter] });
+    const previousTodos = queryClient.getQueryData(["todos", filter]);
+
+    // Immediately remove item from local cache
+    queryClient.setQueryData(["todos", filter], (old = []) =>
+      old.filter((todo) => todo.id !== deletedId)
+    );
+
+    return { previousTodos };
+  },
+
+  onError: (err, deletedId, context) => {
+    // Revert deletion if server request fails
+    queryClient.setQueryData(["todos", filter], context.previousTodos);
+  },
+
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ["todos"] });
+  },
+});
+```
+
+---
+
+## 8. Triggering Mutations (`mutate` vs `mutateAsync`)
+
+| Method | Return Type | Usage Scenario |
+|---|---|---|
+| **`mutate(variables)`** | `void` | Standard trigger. Handles success/error inside options callbacks. |
+| **`mutateAsync(variables)`** | `Promise` | Returns a Promise. Use when you need `try/catch` or need to `await` the result inside an async event handler. |
+
+---
+
+## 9. Complete Working Component (`useMutationExampple.jsx`)
+
+Here is the complete reference implementation demonstrating `useQuery`, `useMutation`, Optimistic Updates, filters, and global monitoring in one cohesive component:
+
+```jsx
+import { useState } from 'react';
+import { 
+    useQuery, 
+    useMutation, 
+    useQueryClient, 
+    useIsFetching, 
+    useIsMutating 
+} from '@tanstack/react-query';
+import axios from 'axios';
+
+const fetchTodos = async ({ queryKey }) => {
+    const [, filter] = queryKey;
+    const response = await axios.get('https://jsonplaceholder.typicode.com/todos', {
+        params: { _limit: 5, completed: filter === 'completed' ? true : filter === 'active' ? false : undefined }
+    });
+    return response.data;
+};
+
+const addTodoItem = async (newTodo) => {
+    const response = await axios.post('https://jsonplaceholder.typicode.com/todos', newTodo);
+    return response.data;
+};
+
+const updateTodoItem = async (updatedTodo) => {
+    const response = await axios.put(`https://jsonplaceholder.typicode.com/todos/${updatedTodo.id}`, updatedTodo);
+    return response.data;
+};
+
+const deleteTodoItem = async (id) => {
+    await axios.delete(`https://jsonplaceholder.typicode.com/todos/${id}`);
+    return id;
+};
+
+export default function CompleteReactQueryComponent() {
+    const [filter, setFilter] = useState('all');
+    const [newTitle, setNewTitle] = useState('');
+    const queryClient = useQueryClient();
+
+    // Global monitoring hooks
+    const globalIsFetchingCount = useIsFetching();
+    const globalIsMutatingCount = useIsMutating();
+
+    // useQuery with advanced options
+    const {
+        data: todos,
+        isLoading,
+        isError,
+        error,
+        isFetching,
+        isStale,
+        status,
+        fetchStatus,
+        refetch,
+        dataUpdatedAt
+    } = useQuery({
+        queryKey: ['todos', filter],
+        queryFn: fetchTodos,
+        staleTime: 1000 * 60 * 2,
+        gcTime: 1000 * 60 * 10,
+        refetchOnWindowFocus: true,
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        select: (data) => data.map(todo => ({ ...todo, titleUppercase: todo.title.toUpperCase() }))
+    });
+
+    // useMutation: Add Item (POST) with Optimistic Update
+    const addMutation = useMutation({
+        mutationFn: addTodoItem,
+        onMutate: async (newTodoVariables) => {
+            await queryClient.cancelQueries({ queryKey: ['todos', filter] });
+            const previousTodos = queryClient.getQueryData(['todos', filter]);
+
+            queryClient.setQueryData(['todos', filter], (old = []) => [
+                { id: Date.now(), title: newTodoVariables.title, completed: false, titleUppercase: newTodoVariables.title.toUpperCase() },
+                ...old,
+            ]);
+
+            return { previousTodos };
+        },
+        onError: (err, newTodo, context) => {
+            queryClient.setQueryData(['todos', filter], context.previousTodos);
+            console.error('Mutation failed, rolled back:', err.message);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos'] });
+        },
+        onSuccess: () => {
+            setNewTitle('');
+        }
+    });
+
+    // useMutation: Update Item (PUT)
+    const updateMutation = useMutation({
+        mutationFn: updateTodoItem,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos'] });
+        }
+    });
+
+    // useMutation: Delete Item (DELETE) with Optimistic Removal
+    const deleteMutation = useMutation({
+        mutationFn: deleteTodoItem,
+        onMutate: async (deletedId) => {
+            await queryClient.cancelQueries({ queryKey: ['todos', filter] });
+            const previousTodos = queryClient.getQueryData(['todos', filter]);
+
+            queryClient.setQueryData(['todos', filter], (old = []) => 
+                old.filter(todo => todo.id !== deletedId)
+            );
+
+            return { previousTodos };
+        },
+        onError: (err, deletedId, context) => {
+            queryClient.setQueryData(['todos', filter], context.previousTodos);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos'] });
+        }
+    });
+
+    const handleAddSubmit = (e) => {
+        e.preventDefault();
+        if (!newTitle.trim()) return;
+        addMutation.mutate({ title: newTitle, completed: false, userId: 1 });
+    };
+
+    const handleToggleComplete = (todo) => {
+        updateMutation.mutate({ ...todo, completed: !todo.completed });
+    };
+
+    if (isLoading) return <div style={{ padding: '20px' }}>Loading initial data...</div>;
+    if (isError) return <div style={{ padding: '20px', color: 'red' }}>Error: {error.message}</div>;
+
+    return (
+        <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto' }}>
+            <h2>Advanced Complete React Query Demonstration</h2>
+
+            {/* Global Monitoring Indicators */}
+            <div style={{ background: '#f0f0f0', padding: '10px', marginBottom: '15px', borderRadius: '5px', fontSize: '14px' }}>
+                <p>Global Active Queries Fetching: <strong>{globalIsFetchingCount}</strong></p>
+                <p>Global Active Mutations Running: <strong>{globalIsMutatingCount}</strong></p>
+            </div>
+
+            {/* Query Status & Metadata panel */}
+            <div style={{ background: '#eef2f7', padding: '10px', marginBottom: '15px', borderRadius: '5px', fontSize: '13px' }}>
+                <p>Query Status: <code>{status}</code> | Fetch Status: <code>{fetchStatus}</code></p>
+                <p>Is Data Stale? <strong>{isStale ? 'Yes' : 'No'}</strong> | Background Refetching: <strong>{isFetching ? 'Yes' : 'No'}</strong></p>
+                <p>Last Data Update Time: {new Date(dataUpdatedAt).toLocaleTimeString()}</p>
+                <button onClick={() => refetch()} style={{ marginTop: '5px', padding: '4px 8px' }}>Manual Refetch</button>
+            </div>
+
+            {/* Filters Navigation */}
+            <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+                <button onClick={() => setFilter('all')} style={{ fontWeight: filter === 'all' ? 'bold' : 'normal' }}>All</button>
+                <button onClick={() => setFilter('active')} style={{ fontWeight: filter === 'active' ? 'bold' : 'normal' }}>Active</button>
+                <button onClick={() => setFilter('completed')} style={{ fontWeight: filter === 'completed' ? 'bold' : 'normal' }}>Completed</button>
+            </div>
+
+            {/* Add Todo Form */}
+            <form onSubmit={handleAddSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                <input 
+                    type="text" 
+                    placeholder="Enter new task..." 
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    style={{ flex: 1, padding: '8px' }}
+                />
+                <button type="submit" disabled={addMutation.isPending} style={{ padding: '8px 15px' }}>
+                    {addMutation.isPending ? 'Adding...' : 'Add Task'}
+                </button>
+            </form>
+
+            {/* Todos List Display */}
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+                {todos?.map(todo => (
+                    <li 
+                        key={todo.id} 
+                        style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            padding: '10px', 
+                            borderBottom: '1px solid #ddd',
+                            background: todo.completed ? '#e8f5e9' : '#fff'
+                        }}
+                    >
+                        <span 
+                            onClick={() => handleToggleComplete(todo)}
+                            style={{ 
+                                textDecoration: todo.completed ? 'line-through' : 'none', 
+                                cursor: 'pointer',
+                                flex: 1 
+                            }}
+                        >
+                            {todo.titleUppercase}
+                        </span>
+                        
+                        <button 
+                            onClick={() => deleteMutation.mutate(todo.id)}
+                            disabled={deleteMutation.isPending}
+                            style={{ background: '#ff5252', color: '#fff', border: 'none', padding: '5px 10px', cursor: 'pointer', borderRadius: '3px' }}
+                        >
+                            Delete
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+```

@@ -3,6 +3,7 @@ import { useState } from "react";
 // 1. React Query (TanStack Query)
 import PostsQuery from "./react-query/PostsQuery";
 import ProductsComponent from "./react-query/QueryClintExample";
+import CompleteReactQueryComponent from "./react-query/useMutationExampple";
 
 // 2. Redux Toolkit Demos
 import CounterRTK from "./pages/redux/CounterRTK";
@@ -18,12 +19,19 @@ import CounterZustand from "./pages/zustand/CounterZustand";
 import RtkQueryPosts from "./pages/redux/RtkQueryPosts";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("react-query-example");
+  const [activeTab, setActiveTab] = useState("advanced-mutations");
 
   return (
     <div>
       {/* شريط أزرار لاختيار المكتبة اللي بتجربها */}
       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", borderBottom: "1px solid #cbd5e1", paddingBottom: "12px", marginBottom: "20px" }}>
+        <button
+          onClick={() => setActiveTab("advanced-mutations")}
+          style={{ background: activeTab === "advanced-mutations" ? "#0284c7" : "#fff", color: activeTab === "advanced-mutations" ? "#fff" : "#000" }}
+        >
+          React Query (Advanced CRUD & Optimistic)
+        </button>
+
         <button
           onClick={() => setActiveTab("react-query-example")}
           style={{ background: activeTab === "react-query-example" ? "#0284c7" : "#fff", color: activeTab === "react-query-example" ? "#fff" : "#000" }}
@@ -35,7 +43,7 @@ export default function App() {
           onClick={() => setActiveTab("react-query")}
           style={{ background: activeTab === "react-query" ? "#0284c7" : "#fff", color: activeTab === "react-query" ? "#fff" : "#000" }}
         >
-          React Query (Mutation Test)
+          React Query (Simple Mutation)
         </button>
 
         <button
@@ -89,6 +97,7 @@ export default function App() {
       </div>
 
       {/* المكون المختار للتجربة */}
+      {activeTab === "advanced-mutations" && <CompleteReactQueryComponent />}
       {activeTab === "react-query-example" && <ProductsComponent />}
       {activeTab === "react-query" && <PostsQuery />}
       {activeTab === "redux-counter" && <CounterRTK />}

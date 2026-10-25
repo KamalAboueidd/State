@@ -482,22 +482,32 @@ flowchart LR
 
 ## 4. Built-in CRUD Methods Reference
 
-All adapter methods can be used directly as slice reducers or inside `extraReducers`:
+All adapter methods can be used directly as slice reducers or inside `extraReducers`. Each method operates in optimal time complexity:
 
-| Method | Behavior (Simple English) | Time Complexity |
-| :--- | :--- | :---: |
-| `setAll(state, items)` | Clears all existing items and loads a new list in sorted, normalized shape. | $O(N \log N)$ |
-| `setOne(state, item)` | Adds a new item or completely replaces it if it already exists. | $O(1)$ |
-| `setMany(state, items)` | Adds or completely replaces multiple items. | $O(K)$ |
-| `addOne(state, item)` | Adds a single new item. Does nothing if the ID already exists. | $O(1)$ |
-| `addMany(state, items)` | Adds multiple new items at once. | $O(K)$ |
-| `updateOne(state, { id, changes })` | Updates specific fields of an existing item using `{ id, changes }`. | $O(1)$ |
-| `updateMany(state, updates)` | Updates specific fields of multiple existing items. | $O(K)$ |
-| `upsertOne(state, item)` | Smart insert: adds the item if new, or merges updates if it already exists. | $O(1)$ |
-| `upsertMany(state, items)` | Smart insert or update for multiple items at once. | $O(K)$ |
-| `removeOne(state, id)` | Deletes a single item by its ID. | $O(1)$ |
-| `removeMany(state, [ids])` | Deletes multiple items by their IDs. | $O(K)$ |
-| `removeAll(state)` | Empties the entire store (clears `ids` and `entities`). | $O(1)$ |
+- **`setAll(state, items)`** `O(N log N)`  
+  Clears all existing items and loads a new list in sorted, normalized shape.
+- **`setOne(state, item)`** `O(1)`  
+  Adds a new item or completely replaces it if it already exists.
+- **`setMany(state, items)`** `O(K)`  
+  Adds or completely replaces multiple items at once.
+- **`addOne(state, item)`** `O(1)`  
+  Adds a single new item. Does nothing if the ID already exists.
+- **`addMany(state, items)`** `O(K)`  
+  Adds multiple new items at once.
+- **`updateOne(state, { id, changes })`** `O(1)`  
+  Updates specific fields of an existing item using `{ id, changes }`.
+- **`updateMany(state, updates)`** `O(K)`  
+  Updates specific fields of multiple existing items.
+- **`upsertOne(state, item)`** `O(1)`  
+  Smart insert: adds the item if new, or merges updates if it already exists.
+- **`upsertMany(state, items)`** `O(K)`  
+  Smart insert or update for multiple items at once.
+- **`removeOne(state, id)`** `O(1)`  
+  Deletes a single item by its ID.
+- **`removeMany(state, [ids])`** `O(K)`  
+  Deletes multiple items by their IDs.
+- **`removeAll(state)`** `O(1)`  
+  Empties the entire store (clears `ids` and `entities`).
 
 ---
 
@@ -505,13 +515,16 @@ All adapter methods can be used directly as slice reducers or inside `extraReduc
 
 Calling `adapter.getSelectors((state) => state.feature)` generates optimized memoized selectors:
 
-| Selector | Return Value | Common Use Case |
-| :--- | :--- | :--- |
-| `selectAll` | Array of all entity objects in sorted order. | Rendering lists in UI with `.map()`. |
-| `selectById` | Single item object matching given ID, or `undefined`. | Detail view / profile card for one user. |
-| `selectIds` | Array of all IDs (`[1, 2, 3]`). | Checking item existence or ID-only rendering. |
-| `selectEntities` | Dictionary object (`{ [id]: entity }`). | Fast lookups in custom selectors. |
-| `selectTotal` | Total number of items stored. | Showing badge counts (e.g. "Total Users: 10"). |
+- **`selectAll`** *(Returns Array)*  
+  Array of all entity objects in sorted order. Perfect for rendering lists in UI with `.map()`.
+- **`selectById`** *(Returns Object | undefined)*  
+  Single item object matching the given ID. Ideal for detail views or cards.
+- **`selectIds`** *(Returns Array)*  
+  Array of all IDs (`[1, 2, 3]`). Used for checking item existence or ID-only rendering.
+- **`selectEntities`** *(Returns Dictionary Object)*  
+  Lookup dictionary (`{ [id]: entity }`). Perfect for fast $O(1)$ lookups in custom selectors.
+- **`selectTotal`** *(Returns Number)*  
+  Total number of stored entities. Great for badge counts (e.g. "Total Users: 10").
 
 ---
 
@@ -811,16 +824,22 @@ const {
 
 ### Advanced `useQuery` Options Explained
 
-| Option | What it does | Simple Example |
-|---|---|---|
-| **`queryKey`** | The unique identifier for this cache entry in memory. Accepts an array with dynamic parameters. | `['todos', filter]` |
-| **`queryFn`** | The async function that fetches data. It automatically receives `{ queryKey }`. | `fetchTodos({ queryKey })` |
-| **`staleTime`** | How long (in ms) the data is considered **fresh**. While fresh, React Query returns cached data without calling the server. | `1000 * 60 * 2` (2 mins) |
-| **`gcTime`** | (Formerly `cacheTime`). How long inactive/unused data stays in memory before being garbage collected. | `1000 * 60 * 10` (10 mins) |
-| **`refetchOnWindowFocus`** | When `true`, refetches fresh data when the user switches tabs and comes back. | `true` |
-| **`retry`** | Number of times to retry a failed request before showing an error. | `3` |
-| **`retryDelay`** | Delay between retries. Can use exponential backoff formula. | `(attempt) => Math.min(1000 * 2 ** attempt, 30000)` |
-| **`select`** | Transforms or filters the data before the component receives it. Saves unnecessary re-renders. | `(data) => data.map(...)` |
+- **`queryKey`** *(Array — e.g. `['todos', filter]`)*  
+  The unique identifier for this cache entry in memory. Accepts an array with dynamic variables for automatic cache segmentation.
+- **`queryFn`** *(Async Function — e.g. `fetchTodos`)*  
+  The async function that fetches data. It automatically receives an object containing `{ queryKey, signal }`.
+- **`staleTime`** *(Number in ms — e.g. `1000 * 60 * 2` [2 mins])*  
+  How long the data is considered **fresh**. While fresh, React Query serves from memory instantly without network requests.
+- **`gcTime`** *(Number in ms — e.g. `1000 * 60 * 10` [10 mins])*  
+  *(Formerly `cacheTime`)*. How long unused/inactive cache data stays in memory before garbage collection cleans it up.
+- **`refetchOnWindowFocus`** *(Boolean — `true`)*  
+  Automatically refetches fresh data whenever the user switches back to the browser tab or app window.
+- **`retry`** *(Number or Boolean — e.g. `3`)*  
+  Number of retry attempts if an HTTP request fails before reporting an error to the UI.
+- **`retryDelay`** *(Function or Number — e.g. exponential backoff)*  
+  Delay between retry attempts: `(attempt) => Math.min(1000 * 2 ** attempt, 30000)`.
+- **`select`** *(Function — e.g. `(data) => data.map(...)`)*  
+  Transforms or memoizes data on the fly before handing it to the component. Saves unnecessary UI re-renders.
 
 ### `staleTime` vs `gcTime` Timeline
 
@@ -936,6 +955,8 @@ const fetchTodos = async ({ queryKey }) => {
 
 While `useQuery` is for **reading data**, `useMutation` is for **writing data and side effects** (POST, PUT, PATCH, DELETE).
 
+![TanStack React Query useMutation Lifecycle Flow](use-mutation-flow.jpg)
+
 ### Core Anatomy of `useMutation`
 
 ```js
@@ -944,25 +965,28 @@ const mutation = useMutation({
     return await axios.post("/api/todos", newTodo);
   },
   onMutate: async (variables) => {
-    // 1. Runs BEFORE mutation executes (used for Optimistic Updates)
+    // 1. Runs BEFORE mutation executes (used for Optimistic Updates & Snapshotting)
+    // Whatever is returned here becomes the 'context' in onError and onSettled!
+    return { rollbackData };
   },
   onError: (error, variables, context) => {
-    // 2. Runs if mutation fails (rollback local cache)
+    // 2. Runs if server request fails -> Revert cache using context!
   },
   onSuccess: (data, variables, context) => {
-    // 3. Runs on server success
+    // 3. Runs on server success (2xx HTTP response)
   },
   onSettled: (data, error, variables, context) => {
-    // 4. Runs ALWAYS on finish (like 'finally') -> Invalidate queries!
+    // 4. Runs ALWAYS when finished (success or failure, like 'finally')
+    // -> Invalidate queries to resync cache with server!
   },
 });
 ```
 
 ---
 
-## 7. Deep Dive: Optimistic Updates with Rollback
+## 7. Deep Dive: Optimistic Updates, Context Rollback & Cache Mechanics
 
-**Optimistic Updates** make your app feel instant. You update the local UI cache immediately before waiting for the server response. If the server request fails, you roll back to the previous snapshot!
+**Optimistic Updates** make your application feel instantaneous by updating the local UI cache immediately before the server responds. If the server request fails, the UI rolls back cleanly to the pre-mutation snapshot.
 
 ```mermaid
 sequenceDiagram
@@ -972,24 +996,78 @@ sequenceDiagram
     participant Cache as Query Cache
     participant Server as Backend API
 
-    User->>Component: Click "Add Task"
+    User->>Component: Click "Add Task" / "Delete"
     Component->>Cache: onMutate() -> Cancel refetches & Snapshot previous data
-    Component->>Cache: setQueryData() -> Insert item optimistically (0ms delay!)
-    Cache-->>User: Instant visual update! 
-    Component->>Server: HTTP POST /todos
-    alt Server Success
-        Server-->>Component: 201 Created
-        Component->>Cache: onSettled() -> invalidateQueries(['todos']) (sync with server)
-    else Server Error
-        Server-->>Component: 500 Error
-        Component->>Cache: onError() -> Rollback cache using snapshotted context!
-        Cache-->>User: UI reverts back to previous safe state & shows error alert
+    Component->>Cache: setQueryData() -> Optimistic update (0ms delay!)
+    Cache-->>User: Instant visual update!
+    Component->>Server: HTTP POST / DELETE /todos
+    alt Server Success (200 OK)
+        Server-->>Component: Success Response
+        Component->>Cache: onSettled() -> invalidateQueries(['todos'])
+    else Server Error (500 Error / Offline)
+        Server-->>Component: Failed Request
+        Component->>Cache: onError() -> Rollback cache using context.previousTodos!
+        Cache-->>User: UI reverts back to safe previous state!
     end
 ```
 
-### 3 Practical Mutation Patterns:
+### Essential Architectural Concepts Explained
 
-### Pattern A: Add Item (POST) with Optimistic Update & Rollback
+#### 1. Why `return { previousTodos }` in `onMutate`? (The Context Pipeline)
+- **The Context Mechanism:** Whatever object is returned from `onMutate` is automatically captured by TanStack Query and passed as the 3rd argument (`context`) to both `onError(err, variables, context)` and `onSettled(data, error, variables, context)`.
+- **The Snapshot:**
+  ```js
+  const previousTodos = queryClient.getQueryData(['todos', filter]);
+  return { previousTodos };
+  ```
+- **The Rollback on Failure:**
+  ```js
+  onError: (err, newTodo, context) => {
+    // Restores the previous cache state if network fails or server throws 500
+    queryClient.setQueryData(['todos', filter], context.previousTodos);
+  }
+  ```
+  If you don't return `{ previousTodos }`, `context` will be `undefined`, making it impossible to roll back the UI if the network request fails.
+
+---
+
+#### 2. Why `(old = []) => ...` Default Value? (Defensive Cache Guard)
+- **The Problem:** If the query hasn't completed its initial fetch, if the user navigated directly to the page, or if the cache was invalidated/cleared, `queryClient.getQueryData(['todos', filter])` returns `undefined`.
+- **What happens without the default?**
+  - In addition: `[newItem, ...old]` becomes `[newItem, ...undefined]`, which throws `TypeError: old is not iterable`.
+  - In deletion: `old.filter(...)` becomes `undefined.filter(...)`, which crashes with `TypeError: Cannot read properties of undefined (reading 'filter')`.
+- **The Solution:**
+  ```js
+  queryClient.setQueryData(['todos', filter], (old = []) => [
+    newItem,
+    ...old,
+  ]);
+  ```
+  Setting `(old = [])` ensures `old` is always a valid array, protecting your application from runtime crashes under cold cache states.
+
+---
+
+#### 3. Understanding `filter`: Cache Segmentation vs. Prefix Invalidation
+- **Cache Segmentation by `queryKey`:**
+  In TanStack Query, the array `['todos', filter]` creates separate, independent cache slots in memory for each unique filter value:
+  - Cache 1: `['todos', 'all']`
+  - Cache 2: `['todos', 'active']`
+  - Cache 3: `['todos', 'completed']`
+- **Why `setQueryData` uses `['todos', filter]`:**
+  During `onMutate`, the user is currently looking at their active screen (e.g. `'all'`). Updating `['todos', filter]` gives the user **0ms instant visual feedback** on the active view.
+- **Why `onSettled` calls `invalidateQueries({ queryKey: ['todos'] })` WITHOUT `filter`:**
+  TanStack Query uses **prefix (fuzzy) matching** by default!
+  Specifying only `['todos']` automatically matches and invalidates **ALL** queries starting with `['todos']`:
+  - `['todos', 'all']` ➔ Marked stale & refetched
+  - `['todos', 'active']` ➔ Marked stale & refetched
+  - `['todos', 'completed']` ➔ Marked stale & refetched
+  This guarantees that once the server operation completes, all lists across the entire system stay 100% in sync with the database without needing to manually update each filter variant!
+
+---
+
+### 3 Practical Mutation Patterns
+
+#### Pattern A: Add Item (POST) with Optimistic Update & Rollback
 ```js
 const addMutation = useMutation({
   mutationFn: (newTodo) => axios.post("/api/todos", newTodo),
@@ -999,7 +1077,7 @@ const addMutation = useMutation({
     await queryClient.cancelQueries({ queryKey: ["todos", filter] });
     const previousTodos = queryClient.getQueryData(["todos", filter]);
 
-    // Optimistically update cache with temporary ID
+    // Optimistically update cache with temporary ID & defensive default array
     queryClient.setQueryData(["todos", filter], (old = []) => [
       { id: Date.now(), title: newTodoVariables.title, completed: false },
       ...old,
@@ -1011,7 +1089,7 @@ const addMutation = useMutation({
 
   // Step 2: Rollback on error
   onError: (err, newTodo, context) => {
-    queryClient.setQueryData(["todos", filter], context.previousTodos);
+    queryClient.setQueryData(["todos", filter], context?.previousTodos);
     console.error("Mutation failed, rolled back:", err.message);
   },
 
@@ -1026,7 +1104,7 @@ const addMutation = useMutation({
 });
 ```
 
-### Pattern B: Update Item (PUT / PATCH)
+#### Pattern B: Update Item (PUT / PATCH)
 ```js
 const updateMutation = useMutation({
   mutationFn: (updatedTodo) =>
@@ -1038,7 +1116,7 @@ const updateMutation = useMutation({
 });
 ```
 
-### Pattern C: Delete Item (DELETE) with Optimistic Removal
+#### Pattern C: Delete Item (DELETE) with Optimistic Removal
 ```js
 const deleteMutation = useMutation({
   mutationFn: (id) => axios.delete(`/api/todos/${id}`),
@@ -1057,7 +1135,7 @@ const deleteMutation = useMutation({
 
   onError: (err, deletedId, context) => {
     // Revert deletion if server request fails
-    queryClient.setQueryData(["todos", filter], context.previousTodos);
+    queryClient.setQueryData(["todos", filter], context?.previousTodos);
   },
 
   onSettled: () => {
@@ -1070,16 +1148,16 @@ const deleteMutation = useMutation({
 
 ## 8. Triggering Mutations (`mutate` vs `mutateAsync`)
 
-| Method | Return Type | Usage Scenario |
-|---|---|---|
-| **`mutate(variables)`** | `void` | Standard trigger. Handles success/error inside options callbacks. |
-| **`mutateAsync(variables)`** | `Promise` | Returns a Promise. Use when you need `try/catch` or need to `await` the result inside an async event handler. |
+- **`mutate(variables, { onSuccess, onError })`** *(Returns `void`)*  
+  The standard, fire-and-forget way to execute mutations. Success and error handling are managed via callbacks. Does not throw errors to the caller.
+- **`mutateAsync(variables)`** *(Returns `Promise<TData>`)*  
+  Returns a standard Promise. Use when you need `await` or `try/catch` directly inside an async event handler (e.g. awaiting an API response before redirecting or coordinating chained requests).
 
 ---
 
-## 9. Complete Working Component (`useMutationExampple.jsx`)
+## 9. Complete Working Component Logic (`useMutationExampple.jsx`)
 
-Here is the complete reference implementation demonstrating `useQuery`, `useMutation`, Optimistic Updates, filters, and global monitoring in one cohesive component:
+Here is the reference implementation demonstrating `useQuery`, `useMutation`, Optimistic Updates, filters, and global monitoring (refer to [`src/react-query/useMutationExampple.jsx`](file:///d:/directState/src/react-query/useMutationExampple.jsx) for the interactive UI):
 
 ```jsx
 import { useState } from 'react';
@@ -1162,7 +1240,7 @@ export default function CompleteReactQueryComponent() {
             return { previousTodos };
         },
         onError: (err, newTodo, context) => {
-            queryClient.setQueryData(['todos', filter], context.previousTodos);
+            queryClient.setQueryData(['todos', filter], context?.previousTodos);
             console.error('Mutation failed, rolled back:', err.message);
         },
         onSettled: () => {
@@ -1195,7 +1273,7 @@ export default function CompleteReactQueryComponent() {
             return { previousTodos };
         },
         onError: (err, deletedId, context) => {
-            queryClient.setQueryData(['todos', filter], context.previousTodos);
+            queryClient.setQueryData(['todos', filter], context?.previousTodos);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['todos'] });
@@ -1212,8 +1290,11 @@ export default function CompleteReactQueryComponent() {
         updateMutation.mutate({ ...todo, completed: !todo.completed });
     };
 
-    if (isLoading) return <div style={{ padding: '20px' }}>Loading initial data...</div>;
-    if (isError) return <div style={{ padding: '20px', color: 'red' }}>Error: {error.message}</div>;
+    if (isLoading) return <div>Loading...</div>;
+    if (isError) return <div>Error: {error.message}</div>;
 
-   
+    // Full UI rendering logic available in src/react-query/useMutationExampple.jsx
+    return null;
+}
 ```
+

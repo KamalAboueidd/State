@@ -70,9 +70,7 @@ export default function CompleteReactQueryComponent() {
         select: (data) => data.map(todo => ({ ...todo, titleUppercase: todo.title.toUpperCase() }))
     });
 
-    // ------------------------------------------
-    // C. useMutation: Add Item (POST) with Advanced Lifecycles
-    // ------------------------------------------
+     // use Mutation :  
     const addMutation = useMutation({
         mutationFn: addTodoItem,
         // Executed before the mutation function runs (used for Optimistic Updates)
@@ -84,7 +82,7 @@ export default function CompleteReactQueryComponent() {
             const previousTodos = queryClient.getQueryData(['todos', filter]);
 
             // Optimistically update to the new value
-            queryClient.setQueryData(['todos', filter], (old = []) => [
+            queryClient.setQueryData(['todos', filter], (old = []) => [ // old = []  , default value , because if the cache empty the old will be undefiend and it will throw an error when use ...old,
                 { id: Date.now(), title: newTodoVariables.title, completed: false, titleUppercase: newTodoVariables.title.toUpperCase() },
                 ...old,
             ]);
@@ -97,7 +95,7 @@ export default function CompleteReactQueryComponent() {
             queryClient.setQueryData(['todos', filter], context.previousTodos);
             console.error('Mutation failed, rolled back to previous state:', err.message);
         },
-        // Always refetch after error or success to ensure synchronization with server
+        // Always refetch after error or success to ensure synchronization with server  (if req sucess or faild)
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['todos'] });
         },
@@ -106,10 +104,7 @@ export default function CompleteReactQueryComponent() {
             setNewTitle('');
         }
     });
-
-    // ------------------------------------------
-    // D. useMutation: Update Item (PUT)
-    // ------------------------------------------
+ // useMutation with PUT
     const updateMutation = useMutation({
         mutationFn: updateTodoItem,
         onSuccess: () => {
@@ -118,26 +113,26 @@ export default function CompleteReactQueryComponent() {
         }
     });
 
-    // ------------------------------------------
-    // E. useMutation: Delete Item (DELETE) with Optimistic UI Update
-    // ------------------------------------------
+     // use Mutation with DELETE
     const deleteMutation = useMutation({
         mutationFn: deleteTodoItem,
         onMutate: async (deletedId) => {
+             // 1
             await queryClient.cancelQueries({ queryKey: ['todos', filter] });
+             // 2
             const previousTodos = queryClient.getQueryData(['todos', filter]);
 
             // Filter out the deleted item immediately in the local cache
             queryClient.setQueryData(['todos', filter], (old = []) => 
-                old.filter(todo => todo.id !== deletedId)
+                old.filter(todo => todo.id !== deletedId) // old refere to the data that in the cache .
             );
 
             return { previousTodos };
         },
-        onError: (err, deletedId, context) => {
+        onError: (err, deletedId, context) => { // if any error not delete anything . use previousData
             queryClient.setQueryData(['todos', filter], context.previousTodos);
         },
-        onSettled: () => {
+        onSettled: () => { // always refetch data to get the latest data from server (sucess or faild)
             queryClient.invalidateQueries({ queryKey: ['todos'] });
         }
     });
@@ -146,11 +141,11 @@ export default function CompleteReactQueryComponent() {
     const handleAddSubmit = (e) => {
         e.preventDefault();
         if (!newTitle.trim()) return;
-        addMutation.mutate({ title: newTitle, completed: false, userId: 1 });
+        addMutation.mutate({ title: newTitle, completed: false, userId: 1 }); // addMutation with payload that send to the server [addTodoItem] 
     };
 
     const handleToggleComplete = (todo) => {
-        updateMutation.mutate({ ...todo, completed: !todo.completed });
+        updateMutation.mutate({ ...todo, completed: !todo.completed }); // updateMutation with payload that send to the server (updateTodoItem)
     };
 
     // Conditional Rendering States
@@ -234,3 +229,5 @@ export default function CompleteReactQueryComponent() {
         </div>
     );
 }
+
+//

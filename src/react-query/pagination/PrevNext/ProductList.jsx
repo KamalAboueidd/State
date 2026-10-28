@@ -43,7 +43,7 @@ export default function ProductsList() {
                 <button 
                     onClick={() => {
                      
-                        if (!isPlaceholderData) {
+                        if (!isPlaceholderData) { // if the data from the server come now , not from the cache  , make isPlaceholder false and incremant the page count 
                             setPage(old => old + 1);
                         }
                     }}

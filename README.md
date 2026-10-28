@@ -1298,3 +1298,249 @@ export default function CompleteReactQueryComponent() {
 }
 ```
 
+---
+
+# 10. Pagination with React Query (TanStack Query)
+
+![Understanding Pagination in React & Web Apps](react-query-pagination.jpg)
+
+### What is Pagination?
+When an API has many items (like 100 or 1,000 products), we do not load all of them at one time. If we load everything at once, the app becomes slow.  
+Instead, we divide the data into **pages** (for example: 5 items per page).
+
+TanStack React Query makes pagination very fast, clean, and smooth.
+
+---
+
+### The Secret Superpower: `placeholderData: keepPreviousData`
+
+In regular React, when you change the page:
+1. The current list disappears immediately.
+2. A loading spinner flashes on the screen.
+3. The new page data arrives.
+4. **Problem:** The screen jumps and flickers. This is annoying for the user!
+
+With TanStack Query, we add one simple line:
+```javascript
+placeholderData: keepPreviousData
+```
+
+| Without `keepPreviousData` | With `keepPreviousData` |
+| :--- | :--- |
+| Screen goes blank or shows a loading spinner | Old page stays visible on screen |
+| Layout jumps up and down | Smooth transition with no jumps |
+| Annoying flickering | Seamless user experience |
+
+> **How it works:** TanStack Query keeps showing the **old page data** until the **new page data** is completely finished downloading in the background.
+
+---
+
+## Method 1: Previous / Next Pagination (`PrevNext`)
+
+In this pattern, the user navigates using two buttons: **Previous Page** and **Next Page**.
+
+### 1. The Query Hook ([`pagination.js`](file:///d:/directState/src/react-query/pagination/PrevNext/pagination.js))
+We put `page` inside the `queryKey`: `['products', page]`.  
+When `page` changes, React Query knows to fetch that new page or get it instantly from cache if visited before.
+
+```javascript
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import axios from 'axios';
+
+// Fetch function: reads the current page number from queryKey
+const fetchProducts = async ({ queryKey }) => {
+    const [, page] = queryKey; 
+    const response = await axios.get(`https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=5`);
+    return response.data;
+};
+
+export function usePaginatedProducts(page) {
+    return useQuery({
+        queryKey: ['products', page],       // Unique cache for every page!
+        queryFn: fetchProducts,
+        placeholderData: keepPreviousData, // Keeps old data visible while fetching next page
+        staleTime: 1000 * 60 * 5,          // Cache stays fresh for 5 minutes
+    });
+}
+```
+
+### 2. The Component ([`ProductList.jsx`](file:///d:/directState/src/react-query/pagination/PrevNext/ProductList.jsx))
+We keep `page` in local React state (`useState(1)`).
+
+```jsx
+import { useState } from 'react';
+import { usePaginatedProducts } from './pagination.js';
+
+export default function ProductsList() {
+    const [page, setPage] = useState(1);
+
+    const { 
+        data, 
+        isLoading, 
+        isError, 
+        error, 
+        isFetching, 
+        isPlaceholderData 
+    } = usePaginatedProducts(page);
+
+    // Initial load: only shows on the very first visit
+    if (isLoading) return <div>Loading first page... ⏳</div>;
+    if (isError) return <div>Error: {error.message}</div>;
+
+    return (
+        <div style={{ padding: '20px' }}>
+            <h2>Products List (Page {page})</h2>
+
+            {/* Background update indicator */}
+            {isFetching && <span style={{ color: 'gray' }}> 🔄 Updating in background...</span>}
+
+            <ul>
+                {data.map(product => (
+                    <li key={product.id}>{product.title}</li>
+                ))}
+            </ul>
+
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                {/* 1. Previous Button */}
+                <button 
+                    onClick={() => setPage(old => Math.max(old - 1, 1))}
+                    disabled={page === 1}
+                >
+                    Previous Page
+                </button>
+
+                <span>Page: {page}</span>
+
+                {/* 2. Next Button */}
+                <button 
+                    onClick={() => {
+                        // Do not allow clicking Next if the next page is still loading
+                        if (!isPlaceholderData) {
+                            setPage(old => old + 1);
+                        }
+                    }}
+                >
+                    Next Page
+                </button>
+            </div>
+        </div>
+    );
+}
+```
+
+### Important Details for Method 1:
+- `disabled={page === 1}`: Disables the Previous button on page 1 so you cannot go to page 0.
+- `Math.max(old - 1, 1)`: Safe mathematical guard to ensure the page number never goes below 1.
+- `!isPlaceholderData`: If data is still loading from the server, `isPlaceholderData` is `true`. Checking this prevents users from spam-clicking the Next button before data arrives.
+
+---
+
+## Method 2: Numbered Page Pagination (`Numbered`)
+
+In this pattern, the user sees all page numbers as buttons: `[1] [2] [3] [4] ... [20]`.  
+The user can click any number to jump directly to that page.
+
+### 1. The Query Hook ([`NumberPagination.js`](file:///d:/directState/src/react-query/pagination/Numbered/NumberPagination.js))
+To make page numbers, we need to know the **total count** of all items.  
+Most APIs send this in the headers (like `x-total-count`) or in the JSON response body.
+
+```javascript
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import axios from 'axios';
+
+const fetchProductsWithTotal = async ({ queryKey }) => {
+    const [, page] = queryKey;
+    const limit = 5;
+    const response = await axios.get(`https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=${limit}`);
+    
+    return {
+        products: response.data,
+        // Read total items from server headers (default to 100 if missing)
+        totalCount: parseInt(response.headers['x-total-count'] || '100', 10) 
+    };
+};
+
+export function usePaginatedProducts(page) {
+    return useQuery({
+        queryKey: ['products', page],
+        queryFn: fetchProductsWithTotal,
+        placeholderData: keepPreviousData, // Keeps previous list while loading new page
+    });
+}
+```
+
+### 2. The Component ([`NumberedPaginationComponent.jsx`](file:///d:/directState/src/react-query/pagination/Numbered/NumberedPaginationComponent.jsx))
+We calculate how many pages exist using `Math.ceil(totalCount / limit)` and render a button for each page.
+
+```jsx
+import { useState } from 'react';
+import { usePaginatedProducts } from './NumberPagination.js';
+
+export default function NumberedPaginationComponent() {
+    const [page, setPage] = useState(1);
+    const limit = 5;
+
+    const { data, isLoading, isError, isFetching } = usePaginatedProducts(page);
+
+    if (isLoading) return <div>Loading...</div>;
+    if (isError) return <div>Something went wrong!</div>;
+
+    // 1. Calculate total pages: e.g. 100 items / 5 per page = 20 pages
+    const totalPages = Math.ceil((data?.totalCount || 0) / limit);
+
+    // 2. Generate numbers array: [1, 2, 3, 4, ... 20]
+    const pagesArray = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+    return (
+        <div style={{ padding: '20px' }}>
+            <h2>Products (Page {page} of {totalPages})</h2>
+            {isFetching && <span style={{ color: 'gray' }}> 🔄 Updating...</span>}
+
+            <ul>
+                {data.products.map(product => (
+                    <li key={product.id}>{product.title}</li>
+                ))}
+            </ul>
+
+            {/* Render buttons for each page number */}
+            <div style={{ display: 'flex', gap: '5px', marginTop: '20px' }}>
+                {pagesArray.map(pageNum => (
+                    <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        style={{
+                            padding: '8px 12px',
+                            // Highlight the active page in blue
+                            backgroundColor: page === pageNum ? '#007bff' : '#f8f9fa',
+                            color: page === pageNum ? '#fff' : '#000',
+                            border: '1px solid #ccc',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {pageNum}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+```
+
+### Important Details for Method 2:
+- **`Math.ceil((data?.totalCount || 0) / limit)`**: If you have 21 items and 5 items per page, `21 / 5 = 4.2`. `Math.ceil` rounds up to `5` pages so the last item is not lost.
+- **`Array.from({ length: totalPages }, (_, index) => index + 1)`**: Creates an array of numbers starting from 1 up to `totalPages`.
+- **`page === pageNum`**: Checks if this button matches the current active page to highlight it in blue (`#007bff`).
+
+---
+
+## Comparison Summary: Which Method Should You Use?
+
+| Feature | Method 1: Previous / Next | Method 2: Numbered Pages |
+| :--- | :--- | :--- |
+| **API requirement** | Only needs current page items | Needs `totalCount` of all items |
+| **UI controls** | Simple **[Previous]** and **[Next]** buttons | Number buttons **[1] [2] [3] ...** |
+| **Best used for** | Mobile screens, feeds, simple lists | Admin tables, e-commerce product catalogs |
+| **Direct jump** | Can only step +1 or -1 page | Can jump directly to any page number |
+| **User experience** | Zero flickering with `keepPreviousData` | Zero flickering with `keepPreviousData` |
+
+

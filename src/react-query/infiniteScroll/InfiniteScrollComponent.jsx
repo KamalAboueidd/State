@@ -1,4 +1,4 @@
-import { useInfiniteProducts } from './useInfiniteProducts';
+import { useInfiniteProducts } from './infiniteScroll';
 
 export default function InfiniteScrollComponent() {
     const {

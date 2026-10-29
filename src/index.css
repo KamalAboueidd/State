@@ -2124,30 +2124,125 @@ a {
   color: var(--text-primary);
 }
 
-/* Mobile & Tablet Fallback */
+/* Layer Visibility: Desktop vs Mobile */
+.desktop-road-layer {
+  display: block;
+}
+
+.mobile-road-layout {
+  display: none;
+}
+
+/* Mobile & Tablet Highway Road (NEVER HIDDEN) */
 @media (max-width: 860px) {
-  .roadmap-highway-wall {
-    min-height: auto;
-    margin-top: 24px;
+  .roadmap-wall-root {
+    padding: 24px 14px 80px 14px;
   }
-  .svg-road-layer {
+
+  .wall-heading {
+    font-size: 22px;
+  }
+
+  .wall-subheading {
+    font-size: 12px;
+  }
+
+  .desktop-road-layer {
     display: none;
   }
-  .wall-text-blocks-layer {
-    height: auto;
+
+  .mobile-road-layout {
+    display: block;
+    position: relative;
+    min-height: 1140px;
+    margin-top: 24px;
+  }
+
+  /* Mobile Winding Road Strip on the Left */
+  .mobile-svg-road-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: 1140px;
+    pointer-events: none;
+  }
+
+  .mobile-highway-canvas {
+    width: 80px;
+    height: 1140px;
+    overflow: visible;
+  }
+
+  .mobile-road-surface {
+    fill: none;
+    stroke: #18181b;
+    stroke-width: 28;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-dashed-line {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 6;
+    opacity: 0.85;
+  }
+
+  .mobile-tracker-avatar {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: auto;
+    z-index: 10;
+  }
+
+  .mobile-tracker-avatar .bear-marker-disc {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mobile-tracker-avatar .bear-marker-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mobile-tracker-avatar .bear-marker-pulse {
+    width: 40px;
+    height: 40px;
+    top: -4px;
+    left: -4px;
+  }
+
+  .mobile-tracker-avatar .bear-marker-tag {
+    display: none;
+  }
+
+  /* Floating Text Blocks on Mobile (Adjacent to the road) */
+  .mobile-text-list {
+    margin-left: 84px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
-    padding-left: 20px;
-    border-left: 2px dashed #383838;
   }
-  .wall-text-item {
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    width: 100%;
-    transform: none;
+
+  .mobile-text-card {
+    height: 190px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0 4px 0 6px;
+  }
+
+  .mobile-text-card .wall-phase-title {
+    font-size: 14px;
+  }
+
+  .mobile-text-card .wall-phase-desc {
+    font-size: 11px;
+    line-height: 1.45;
+    margin-bottom: 8px;
   }
 }
 

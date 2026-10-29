@@ -53,6 +53,7 @@ export default function LiveCodePlayground({ initialCode = "", title = "Interact
 
     try {
       // Create executable function sandbox (supporting both sync and async code)
+      const sanitizedCode = code;
       let runner;
       if (/\bawait\b/.test(sanitizedCode)) {
         const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
@@ -93,8 +94,6 @@ export default function LiveCodePlayground({ initialCode = "", title = "Interact
         }
         setOutput([...logs]);
       }
-
-      setOutput(logs);
     } catch (err) {
       setHasError(true);
       setOutput([{ type: "error", text: `Runtime Error: ${err.message}` }]);

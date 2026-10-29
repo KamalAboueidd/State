@@ -42,9 +42,15 @@ export default function AppShell() {
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={() => {
+          setIsMobileSidebarOpen(false);
+          setIsSearchOpen(true);
+        }}
         isMobileSidebarOpen={isMobileSidebarOpen}
-        toggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+        toggleMobileSidebar={() => {
+          setIsSearchOpen(false);
+          setIsMobileSidebarOpen((prev) => !prev);
+        }}
       />
 
       <div className="app-body">
@@ -52,8 +58,6 @@ export default function AppShell() {
         <Sidebar
           isMobileOpen={isMobileSidebarOpen}
           closeMobileSidebar={() => setIsMobileSidebarOpen(false)}
-          theme={theme}
-          toggleTheme={toggleTheme}
         />
 
         {/* 3. Main Content Outlet */}
@@ -73,8 +77,14 @@ export default function AppShell() {
 
       {/* 5. Mobile Floating Bottom Bar */}
       <MobileBottomBar
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onToggleSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+        onOpenSearch={() => {
+          setIsMobileSidebarOpen(false);
+          setIsSearchOpen(true);
+        }}
+        onToggleSidebar={() => {
+          setIsSearchOpen(false);
+          setIsMobileSidebarOpen((prev) => !prev);
+        }}
         isSidebarOpen={isMobileSidebarOpen}
       />
     </div>

@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// 1. قراءة الـ Token المحفوظ مسبقاً من LocalStorage
+
 const tokenFromStorage = localStorage.getItem("token")
   ? JSON.parse(localStorage.getItem("token"))
   : null;
 
-// 2. Async thunk لطلب تسجيل الدخول
+
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (userData, { rejectWithValue }) => {

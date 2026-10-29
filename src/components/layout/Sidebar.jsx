@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { ChevronRight, ChevronDown, Layers, Database, Compass } from "lucide-react";
 import { TOPIC_CATEGORIES, TOPICS } from "../../content/registry";
 
-export default function Sidebar({ isMobileOpen, closeMobileSidebar, theme, toggleTheme }) {
+export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
   const location = useLocation();
 
   // State to track expanded topic groups
@@ -127,19 +127,6 @@ export default function Sidebar({ isMobileOpen, closeMobileSidebar, theme, toggl
               </div>
             ))}
           </nav>
-
-          {/* Mobile bottom theme toggle */}
-          {toggleTheme && (
-            <div className="sidebar-mobile-footer">
-              <button
-                onClick={toggleTheme}
-                className="sidebar-theme-toggle-btn"
-                aria-label="Toggle theme"
-              >
-                <span>Theme: {theme === "dark" ? "Dark Mode" : "Light Mode"}</span>
-              </button>
-            </div>
-          )}
         </div>
       </aside>
     </>

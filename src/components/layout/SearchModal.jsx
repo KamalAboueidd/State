@@ -104,7 +104,6 @@ export default function SearchModal({ isOpen, onClose }) {
                       <div className="search-result-text">
                         <div className="search-result-title">
                           <span>{topic.title}</span>
-                          <span className="search-result-badge">{topic.group}</span>
                         </div>
                         <p className="search-result-desc">{topic.description}</p>
                       </div>

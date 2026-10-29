@@ -15,8 +15,8 @@ const fetchProductsWithTotal = async ({ queryKey }) => {
 
 export function usePaginatedProducts(page) {
     return useQuery({
-        queryKey: ['products', page],
+        queryKey: ['products', page], // all pages with same queryKey   , because if you want to back to page you open it before , this page will save it in cache  (n o fetching again).
         queryFn: fetchProductsWithTotal,
-        placeholderData: keepPreviousData,
+        placeholderData: keepPreviousData, // data for old page  keep same time
     });
 }

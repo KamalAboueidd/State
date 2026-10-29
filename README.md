@@ -1543,4 +1543,213 @@ export default function NumberedPaginationComponent() {
 | **Direct jump** | Can only step +1 or -1 page | Can jump directly to any page number |
 | **User experience** | Zero flickering with `keepPreviousData` | Zero flickering with `keepPreviousData` |
 
+---
+
+# 11. Infinite Scroll with TanStack React Query (`useInfiniteQuery`)
+
+![Understanding Infinite Scroll in TanStack React Query](react-query-infinite-scroll.jpg)
+
+### 1. The Concept: What is Infinite Scroll?
+**Infinite Scroll** provides a continuous, seamless content stream—popularized by modern social media feeds like **Instagram**, **TikTok**, and **Twitter/X**.
+
+Instead of navigating with traditional page numbers (`[1] [2] [3]`) where switching pages discards previous content and replaces the entire view, Infinite Scroll loads new batches of data dynamically as the user scrolls near the bottom of the list or clicks a **"Load More"** button.
+
+- **Continuous Feed:** Previously loaded items remain on the screen.
+- **Dynamic Appending:** New items are appended seamlessly to the bottom of the existing list.
+- **Frictionless UX:** Users stay engaged without manual page clicks or page-switching interruptions.
+
+```mermaid
+flowchart TD
+    subgraph QueryState["Stacked Cache Structure (data.pages)"]
+        direction TB
+        P1["data.pages[0] ➔ Page 1 Items (1 - 5)"]
+        P2["data.pages[1] ➔ Page 2 Items (6 - 10)"]
+        P3["data.pages[2] ➔ Page 3 Items (11 - 15)"]
+    end
+
+    subgraph UIComponent["Continuous Feed Display"]
+        direction TB
+        F1["Items 1 to 5"]
+        F2["Items 6 to 10 (Appended)"]
+        F3["Items 11 to 15 (Appended)"]
+        TRIGGER{"User Action"}
+        BTN["'Load More' Button / Scroll Trigger<br>fetchNextPage()"]
+    end
+
+    QueryState --> UIComponent
+    TRIGGER --> BTN
+    BTN -->|Requests Next Batch| QueryState
+```
+
+---
+
+### 2. Implementation: Why `useInfiniteQuery` Instead of `useQuery`?
+
+| Hook | Data Structure | Behavior on Next Page Fetch |
+| :--- | :--- | :--- |
+| **`useQuery`** | Single array or object: `data = [...]` | Overwrites and replaces previous data with the new page |
+| **`useInfiniteQuery`** | Stacked pages object: `data.pages = [[...], [...]]` | Retains all previous pages and appends new pages into an array of arrays |
+
+With `useInfiniteQuery`, TanStack Query returns an object containing:
+- **`data.pages`**: An array containing the server response for each fetched page:
+  ```javascript
+  data = {
+    pages: [
+      { products: [/* items 1..5 */], nextPage: 2 },
+      { products: [/* items 6..10 */], nextPage: 3 },
+      { products: [/* items 11..15 */], nextPage: undefined } // End of list
+    ],
+    pageParams: [1, 2, 3] // The param passed to each page query
+  };
+  ```
+- **`data.pageParams`**: An array recording the exact parameters passed to each fetch.
+
+---
+
+### 3. Core Functions & Properties Explained
+
+#### 1. `getNextPageParam`
+- **What it is:** A required callback function defined in `useInfiniteQuery` that determines the parameter/page number for the **next** network request.
+- **How it works:** It receives `(lastPage, allPages, lastPageParam, allPageParams)`:
+  - If more data is available, return the next page number (e.g. `lastPage.nextPage` or `pageParam + 1`).
+  - If there are no more items to fetch (e.g. empty array or end reached), return `undefined` or `null`.
+  ```javascript
+  getNextPageParam: (lastPage, allPages) => {
+    // If last page has data, request the next page; otherwise stop
+    return lastPage.products.length > 0 ? allPages.length + 1 : undefined;
+  }
+  ```
+
+#### 2. `hasNextPage`
+- **What it is:** A boolean property (`true` or `false`) provided by the hook.
+- **How it works:** TanStack Query calculates this automatically based on `getNextPageParam`:
+  - `true`: `getNextPageParam` returned a valid page parameter, meaning more pages can be fetched.
+  - `false`: `getNextPageParam` returned `undefined`, signaling that the end of the dataset has been reached.
+- **Usage:** Used to disable or hide "Load More" buttons, or stop scroll event listeners.
+
+#### 3. `fetchNextPage`
+- **What it is:** The trigger function that initiates fetching the next batch of data.
+- **How it works:** When invoked, it automatically passes the value calculated by `getNextPageParam` into `queryFn({ pageParam })`.
+- **Usage:** Triggered when the user clicks a "Load More" button or when an `IntersectionObserver` detects the bottom sentinel entering the viewport:
+  ```jsx
+  <button onClick={() => fetchNextPage()}>Load More</button>
+  ```
+
+#### 4. `isFetchingNextPage`
+- **What it is:** A boolean property distinguishing between the initial query load and loading subsequent pages.
+- **Why it matters:** 
+  - `isLoading`: `true` only during the **very first page fetch** (cache is empty).
+  - `isFetchingNextPage`: `true` only when **fetching subsequent pages**.
+  - Prevents accidental duplicate requests and lets you display `"Loading more..."` without replacing existing items.
+
+---
+
+### 4. Simple & Clean Code Example
+
+#### 1. Custom Hook ([`infiniteScroll.js`](file:///d:/directState/src/react-query/infiniteScroll/infiniteScroll.js))
+
+```javascript
+import { useInfiniteQuery } from '@tanstack/react-query';
+import axios from 'axios';
+
+// Fetch function: receives { pageParam } automatically
+const fetchInfiniteProducts = async ({ pageParam = 1 }) => {
+    const res = await axios.get(`https://jsonplaceholder.typicode.com/posts?_page=${pageParam}&_limit=5`);
+    return {
+        products: res.data,
+        // If items were returned, next page is pageParam + 1; otherwise undefined
+        nextPage: res.data.length > 0 ? pageParam + 1 : undefined,
+    };
+};
+
+export function useInfiniteProducts() {
+    return useInfiniteQuery({
+        queryKey: ['infiniteProducts'],
+        queryFn: fetchInfiniteProducts,
+        initialPageParam: 1, // Starting page parameter (v5 required)
+        getNextPageParam: (lastPage) => lastPage.nextPage, // Returns next page or undefined
+    });
+}
+```
+
+#### 2. React Component ([`InfiniteScrollComponent.jsx`](file:///d:/directState/src/react-query/infiniteScroll/InfiniteScrollComponent.jsx))
+
+```jsx
+import React from 'react';
+import { useInfiniteProducts } from './infiniteScroll';
+
+export default function InfiniteScrollComponent() {
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        fetchNextPage,        // Triggers loading the next batch of items
+        hasNextPage,          // Boolean: true if there are more pages to load
+        isFetchingNextPage    // Boolean: true while fetching the next page
+    } = useInfiniteProducts();
+
+    // 1. Initial Load State
+    if (isLoading) return <div>Loading first page... ⏳</div>;
+    if (isError) return <div>Error loading data: {error.message}</div>;
+
+    return (
+        <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+            <h2>Infinite Scroll Feed</h2>
+
+            {/* 2. Render Stacked Pages (Array of Arrays) */}
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+                {data.pages.map((pageGroup, pageIndex) => (
+                    <React.Fragment key={pageIndex}>
+                        {pageGroup.products.map((product) => (
+                            <li 
+                                key={product.id} 
+                                style={{ padding: '15px', borderBottom: '1px solid #eee' }}
+                            >
+                                <strong>#{product.id}</strong> — {product.title}
+                            </li>
+                        ))}
+                    </React.Fragment>
+                ))}
+            </ul>
+
+            {/* 3. Load More / Infinite Scroll Trigger */}
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <button
+                    onClick={() => fetchNextPage()}
+                    disabled={!hasNextPage || isFetchingNextPage}
+                    style={{
+                        padding: '10px 24px',
+                        cursor: hasNextPage ? 'pointer' : 'not-allowed',
+                        borderRadius: '6px',
+                        border: '1px solid #ccc',
+                        backgroundColor: hasNextPage ? '#007bff' : '#e9ecef',
+                        color: hasNextPage ? '#fff' : '#6c757d'
+                    }}
+                >
+                    {isFetchingNextPage
+                        ? 'Loading more items... 🔄'
+                        : hasNextPage
+                        ? 'Load More'
+                        : '🎉 End of Products'}
+                </button>
+            </div>
+        </div>
+    );
+}
+```
+
+---
+
+### 5. Summary: Pagination vs. Infinite Scroll
+
+| Feature | Standard Pagination (`useQuery`) | Infinite Scroll (`useInfiniteQuery`) |
+| :--- | :--- | :--- |
+| **Data Retention** | Old page is discarded/replaced when navigating | All loaded pages stay stacked and visible |
+| **Cache Structure** | Single page: `data = [...]` | Array of pages: `data.pages = [[...], [...]]` |
+| **Hook Used** | `useQuery` + `keepPreviousData` | `useInfiniteQuery` |
+| **Next Step Trigger** | Set page state: `setPage(prev => prev + 1)` | Trigger function: `fetchNextPage()` |
+| **Best For** | Admin tables, search results, direct jumps | Social media feeds, mobile apps, product catalogs |
+
+
 

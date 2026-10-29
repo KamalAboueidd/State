@@ -1,10 +1,23 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Search, Menu, X } from "lucide-react";
+import ZustandBearIcon from "../common/ZustandBearIcon";
 
 export default function MobileBottomBar({ onOpenSearch, onToggleSidebar, isSidebarOpen }) {
   return (
     <div className="mobile-bottom-bar-wrap">
       <div className="mobile-bottom-pill">
+        <Link
+          to="/roadmap"
+          className="mobile-pill-btn roadmap-pill-btn"
+          aria-label="State Roadmap"
+        >
+          <ZustandBearIcon size={14} />
+          <span className="mobile-pill-text">Roadmap</span>
+        </Link>
+
+        <span className="mobile-pill-sep" aria-hidden="true" />
+
         <button
           className="mobile-pill-btn find-btn"
           onClick={onOpenSearch}

@@ -49,6 +49,16 @@ export default function Header({
       </div>
 
       <div className="header-right">
+        <Link
+          to="/roadmap"
+          className="header-roadmap-link"
+          title="State Management Roadmap"
+        >
+          <ZustandBearIcon size={16} />
+          <span className="hide-on-mobile">Roadmap</span>
+          <span className="header-roadmap-interactive">interactive</span>
+        </Link>
+
         <a
           href="https://github.com/KamalAboueidd/DirectState-_Management-"
           target="_blank"

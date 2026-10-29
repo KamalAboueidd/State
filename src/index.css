@@ -1671,3 +1671,486 @@ a {
   }
 }
 
+/* ==========================================================================
+   STRICT MONOCHROME ROADMAP TIMELINE & HIGHWAY PROCESS
+   ========================================================================== */
+
+/* Navbar Link: No border, No background, Pure clean text */
+.header-roadmap-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.header-roadmap-link:hover {
+  color: #ffffff;
+}
+
+.header-roadmap-interactive {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  margin-left: 2px;
+}
+
+/* Roadmap Wall Page Root */
+.roadmap-wall-root {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 36px 20px 100px 20px;
+}
+
+/* Header */
+.roadmap-wall-header {
+  margin-bottom: 40px;
+}
+
+.header-eyebrow-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.wall-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.wall-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.wall-btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+
+.wall-btn-text:hover {
+  color: var(--text-primary);
+}
+
+.wall-sep {
+  color: var(--border-strong);
+}
+
+.wall-heading {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.4px;
+}
+
+.wall-subheading {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+/* Minimal Rail */
+.wall-progress-row {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.progress-labels-mono {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+  margin-bottom: 6px;
+}
+
+.percent-val {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wall-rail {
+  width: 100%;
+  height: 2px;
+  background-color: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.wall-rail-fill {
+  height: 100%;
+  background-color: #ffffff;
+  transition: width 0.3s ease;
+}
+
+/* Main Highway Wall */
+.roadmap-highway-wall {
+  position: relative;
+  margin-top: 36px;
+  min-height: 1500px;
+}
+
+.svg-road-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.highway-canvas {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Road Asphalt Band - NO thick gray curbs! */
+.road-surface {
+  fill: none;
+  stroke: #18181b;
+  stroke-width: 46;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.road-dashed-line {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-dasharray: 8 10;
+  opacity: 0.8;
+}
+
+/* Pointer Lines */
+.road-pointer-line {
+  stroke: #3f3f46;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+  transition: stroke 0.2s ease;
+}
+
+.road-pointer-line.line-done {
+  stroke: #ffffff;
+  stroke-dasharray: none;
+}
+
+.road-pointer-line.line-active {
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-dasharray: none;
+}
+
+.road-pin-circle {
+  fill: #141416;
+  stroke: #71717a;
+  stroke-width: 2;
+  pointer-events: all;
+  transition: all 0.2s ease;
+}
+
+.road-pin-circle:hover {
+  stroke: #ffffff;
+  transform: scale(1.2);
+}
+
+.road-pin-circle.pin-done {
+  fill: #ffffff;
+  stroke: #ffffff;
+}
+
+.road-pin-circle.pin-active {
+  stroke: #ffffff;
+  stroke-width: 2.5;
+}
+
+/* Bear Marker */
+.road-tracker-avatar {
+  position: absolute;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition: left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 10;
+}
+
+.road-bear-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.bear-marker-pulse {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: monoPulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes monoPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.bear-marker-disc {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #000000;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
+  position: relative;
+  z-index: 2;
+}
+
+.bear-marker-icon {
+  color: #ffffff;
+}
+
+.bear-marker-tag {
+  margin-top: 5px;
+  background-color: #000000;
+  border: 1px solid #383838;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  color: #ededed;
+  white-space: nowrap;
+}
+
+/* Floating Text Blocks ("Written on the Wall" - ZERO BOXES, ZERO BACKGROUNDS) */
+.wall-text-blocks-layer {
+  position: relative;
+  width: 100%;
+  height: 1480px;
+  pointer-events: none;
+}
+
+.wall-text-item {
+  position: absolute;
+  transform: translateY(-50%);
+  width: 235px;
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.wall-text-item.item-left {
+  left: 10px;
+  text-align: left;
+}
+
+.wall-text-item.item-right {
+  left: 755px;
+  text-align: left;
+}
+
+.wall-phase-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.meta-tag {
+  color: #a1a1a1;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.meta-sep {
+  color: #52525b;
+  font-size: 9px;
+}
+
+.meta-num {
+  color: #71717a;
+}
+
+.wall-phase-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+}
+
+.wall-title-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.wall-title-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.wall-phase-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.wall-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wall-toggle-btn {
+  background-color: #ffffff;
+  border: 1px solid #ffffff;
+  color: #000000;
+  font-size: 11px;
+  font-weight: 700;
+  height: 24px;
+  min-width: 86px;
+  padding: 0 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+  user-select: none;
+  box-sizing: border-box;
+  transform: none !important;
+}
+
+.wall-toggle-btn:hover {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  opacity: 0.9;
+  transform: none !important;
+}
+
+.wall-toggle-btn:active {
+  transform: none !important;
+}
+
+.wall-toggle-btn.is-done {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  font-weight: 700;
+}
+
+.wall-toggle-btn.is-done:hover {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  opacity: 0.9;
+}
+
+/* Light Mode: Inverted - Pure black button with pure white bold text */
+:root[data-theme="light"] .wall-toggle-btn {
+  background-color: #000000;
+  border: 1px solid #000000;
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .wall-toggle-btn:hover,
+:root[data-theme="light"] .wall-toggle-btn.is-done,
+:root[data-theme="light"] .wall-toggle-btn.is-done:hover {
+  background-color: #000000;
+  border-color: #000000;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.check-svg {
+  stroke-width: 3;
+}
+
+.wall-doc-link {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.15s;
+}
+
+.wall-doc-link:hover {
+  color: var(--text-primary);
+}
+
+/* Mobile & Tablet Fallback */
+@media (max-width: 860px) {
+  .roadmap-highway-wall {
+    min-height: auto;
+    margin-top: 24px;
+  }
+  .svg-road-layer {
+    display: none;
+  }
+  .wall-text-blocks-layer {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-left: 20px;
+    border-left: 2px dashed #383838;
+  }
+  .wall-text-item {
+    position: relative;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100%;
+    transform: none;
+  }
+}
+
+
+
+

@@ -4,12 +4,16 @@ import AppShell from "./components/layout/AppShell";
 import DocumentationView from "./components/docs/DocumentationView";
 import NotFoundView from "./components/docs/NotFoundView";
 
+import RoadmapView from "./components/roadmap/RoadmapView";
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<AppShell />}>
           <Route index element={<Navigate to="/docs/zustand" replace />} />
+          <Route path="roadmap" element={<RoadmapView />} />
+          <Route path="docs/roadmap" element={<RoadmapView />} />
           <Route path="docs" element={<Navigate to="/docs/zustand" replace />} />
           <Route path="docs/*" element={<DocumentationView />} />
           <Route path="*" element={<NotFoundView />} />

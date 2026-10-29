@@ -12,7 +12,7 @@ export const apiSlice = createApi({
       providesTags: ["post"],
     }),
     // Mutation لإضافة مقال وعمل Invalidate للكاش ليعيد الجلب تلقائياً
-    addPostt: builder.mutation({
+    addPost: builder.mutation({
       query: (newPost) => ({
         url: "posts",
         method: "POST",

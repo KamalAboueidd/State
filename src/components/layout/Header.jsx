@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Search, Moon, Sun, Menu, X } from "lucide-react";
+import ZustandBearIcon from "../common/ZustandBearIcon";
 
 function GithubIcon({ size = 16 }) {
   return (
@@ -29,7 +30,8 @@ export default function Header({
           {isMobileSidebarOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
 
-        <Link to="/docs/zustand" className="brand-logo">
+        <Link to="/docs/zustand" className="brand-logo" title="Direct State">
+          <ZustandBearIcon size={20} className="brand-bear-icon" />
           <span className="brand-name">Direct State</span>
         </Link>
       </div>

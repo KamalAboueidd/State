@@ -149,13 +149,16 @@ a {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
+  text-decoration: none;
 }
 
-.brand-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.brand-bear-icon {
   color: var(--text-primary);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo:hover .brand-bear-icon {
+  transform: scale(1.08);
 }
 
 .brand-name {
@@ -1347,7 +1350,9 @@ a {
 .not-found-container {
   display: flex;
   justify-content: center;
-  padding: 48px 0;
+  align-items: center;
+  min-height: 45vh;
+  padding: 60px 0;
 }
 
 .not-found-card {

@@ -8,9 +8,9 @@ function CounterZustand() {
 
   return (
     <div className="card">
-      <h2>🐻 Zustand State Demo</h2>
+      <h2>Zustand State Demo</h2>
       <p style={{ color: "#94a3b8" }}>
-        مفصول في <code>src/store/zustand/useStore.js</code> بدون الحاجة لـ Provider
+        Centralized in <code>src/store/zustand/useStore.js</code> without Context Providers
       </p>
 
       <p className="highlight-val">

@@ -15,10 +15,10 @@ function DashboardComponent() {
       <p>Theme: <strong>{theme}</strong></p>
 
       <button onClick={() => dispatch(toggleSidebar())}>
-        {isSidebarOpen ? "Close Sidebar 📂" : "Open Sidebar 📁"}
+        {isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
       </button>
 
-      <p>Sidebar Status: {isSidebarOpen ? "Open 📂" : "Closed 📁"}</p>
+      <p>Sidebar Status: {isSidebarOpen ? "Open" : "Closed"}</p>
 
       <button
         className="danger-btn"

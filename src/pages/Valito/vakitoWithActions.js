@@ -1,32 +1,47 @@
+import { proxy } from "valtio";
 
+export const appState = proxy({
+  theme: "light",
+  newTodoText: "",
+  todos: [
+    { id: 1, text: "Learning Valtio Fundamentals", completed: true },
+    { id: 2, text: "Building Todo App with Client State", completed: false },
+    { id: 3, text: "Proxy Mutations & useSnapshot Tracking", completed: false },
+  ],
+});
 
+// Alias for backwards compatibility with existing imports
+export const state = appState;
 
-export const state = proxy({
-      them : "light",
-      todos : [
-      { id: 1, text: 'Learning valito Fundemental', completed: true },
-        { id: 2, text: ' Building to do app with Clint state project', completed: false }
-      ]
-})
+export const appActions = {
+  toggleTheme: () => {
+    appState.theme = appState.theme === "light" ? "dark" : "light";
+  },
+  setNewTodoText: (text) => {
+    appState.newTodoText = text;
+  },
+  addTodo: (text) => {
+    const value = (text !== undefined ? text : appState.newTodoText).trim();
+    if (!value) return;
+    appState.todos.push({
+      id: Date.now(),
+      text: value,
+      completed: false,
+    });
+    appState.newTodoText = "";
+  },
+  toggleTodo: (id) => {
+    const todo = appState.todos.find((item) => item.id === id);
+    if (todo) {
+      todo.completed = !todo.completed;
+    }
+  },
+  deleteTodo: (id) => {
+    const index = appState.todos.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      appState.todos.splice(index, 1);
+    }
+  },
+};
 
-export const AppActions = {
-     toggletheme : () => {
-         state.theme == state.them == "light" ? "dark"  : "light" ;
-     },
-      addTodo: (text) => {
-        if (!text.trim()) return;
-        appState.todos.push({
-            id: Date.now(),
-            text: text,
-            completed: false
-        });
-        appState.newTodoText = ''; 
-    },
-     toggleTodo  : (id)=> {
-               const todo =  state.todos.find((dd) => dd.id === id);
-               if(todo )
-               {
-                 todo.completed = !todo.completed ;
-               }
-            }
-}
+export const AppActions = appActions;

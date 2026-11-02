@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import SearchModal from "./SearchModal";
@@ -7,6 +7,8 @@ import Footer from "./Footer";
 import MobileBottomBar from "./MobileBottomBar";
 
 export default function AppShell() {
+  const location = useLocation();
+
   // Theme state: dark by default, persists in localStorage
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("directstate_theme") || "dark";
@@ -14,6 +16,17 @@ export default function AppShell() {
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Scroll to top on route / topic navigation
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const mainArea = document.querySelector(".app-content-area");
+    if (mainArea) {
+      mainArea.scrollTop = 0;
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

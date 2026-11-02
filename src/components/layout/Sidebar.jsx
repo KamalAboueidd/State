@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronRight, ChevronDown, Layers, Database, Compass } from "lucide-react";
+import { ChevronRight, ChevronDown, Layers, Database, Compass, Zap } from "lucide-react";
 import { TOPIC_CATEGORIES, TOPICS } from "../../content/registry";
 
 export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
@@ -9,6 +9,9 @@ export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
   // State to track expanded topic groups
   const [expandedGroups, setExpandedGroups] = useState({
     "Zustand": true,
+    "Valtio Core": true,
+    "Valtio Patterns": true,
+    "Valtio Comparisons": true,
     "Redux Toolkit": true,
     "TanStack React Query": true,
     "RTK Query": true,
@@ -49,6 +52,8 @@ export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
       case "foundations":
         return <Compass size={14} className="cat-icon" />;
       case "zustand":
+      case "valtio":
+        return <Zap size={14} className="cat-icon" />;
       case "redux":
       case "normalized-state":
         return <Layers size={14} className="cat-icon" />;

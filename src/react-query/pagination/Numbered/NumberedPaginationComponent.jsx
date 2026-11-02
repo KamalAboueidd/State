@@ -7,19 +7,16 @@ export default function NumberedPaginationComponent() {
 
     const { data, isLoading, isError, isFetching } = usePaginatedProducts(page);
 
-    if (isLoading) return <div>جاري التحميل...</div>;
-    if (isError) return <div>حصل إيرور!</div>;
-
+    if (isLoading) return <div>Loading products...</div>;
+    if (isError) return <div>Failed to load products.</div>;
 
     const totalPages = Math.ceil((data?.totalCount || 0) / limit);
-
-   
     const pagesArray = Array.from({ length: totalPages }, (_, index) => index + 1);
 
     return (
         <div style={{ padding: '20px' }}>
-            <h2>المنتجات (صفحة {page} من {totalPages})</h2>
-            {isFetching && <span style={{ color: 'gray' }}> 🔄 بيحدث...</span>}
+            <h2>Products (Page {page} of {totalPages})</h2>
+            {isFetching && <span style={{ color: 'gray' }}> 🔄 Updating in background...</span>}
 
             <ul>
                 {data.products.map(product => (
@@ -34,9 +31,10 @@ export default function NumberedPaginationComponent() {
                         onClick={() => setPage(pageNum)}
                         style={{
                             padding: '8px 12px',
-                            backgroundColor: page === pageNum ? '#007bff' : '#f8f9fa',
-                            color: page === pageNum ? '#fff' : '#000',
-                            border: '1px solid #ccc',
+                            backgroundColor: page === pageNum ? 'var(--text-primary, #ededed)' : 'var(--bg-subtle, #141414)',
+                            color: page === pageNum ? 'var(--bg-page, #000)' : 'var(--text-primary, #ededed)',
+                            border: '1px solid var(--border-strong, #383838)',
+                            borderRadius: '4px',
                             cursor: 'pointer'
                         }}
                     >

@@ -28,7 +28,7 @@ function RtkQueryPosts() {
     <div className="card">
       <h2>⚡ RTK Query (Isolated API Slice)</h2>
       <p style={{ color: "#94a3b8" }}>
-        مفصول في <code>src/api/apiSlice.js</code> ومزود بـ Automatic Caching & Invalidation
+        Isolated in <code>src/api/apiSlice.js</code> with Automatic Caching & Tag Invalidation
       </p>
 
       <form onSubmit={handleAddPost} className="form-col">

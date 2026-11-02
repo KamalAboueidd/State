@@ -19,7 +19,7 @@ function LoginComponent() {
   if (token) {
     return (
       <div className="card">
-        <h2>Welcome back! Logged in successfully 🎉</h2>
+        <h2>Welcome back! Logged in successfully.</h2>
         {user && <p>Signed in as: {user.name || user.email || "User"}</p>}
         <button className="danger-btn" onClick={() => dispatch(logout())}>
           Log Out

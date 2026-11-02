@@ -19,6 +19,14 @@ import ProductList from "../../react-query/pagination/PrevNext/ProductList";
 import NumberedPaginationComponent from "../../react-query/pagination/Numbered/NumberedPaginationComponent";
 import InfiniteScrollComponent from "../../react-query/infiniteScroll/InfiniteScrollComponent";
 
+// Valtio Demos
+import ValitoCounter from "../../pages/Valito/ValitoCounter";
+import ValtioRenderTracking from "../../pages/Valito/ValtioRenderTracking";
+import TodoList from "../../pages/Valito/ToDoList";
+import TodoStats from "../../pages/Valito/Drived";
+import ThemeToggle from "../../pages/Valito/ThemeToggle";
+import ZustandVsValtioDemo from "../../pages/Valito/ZustandVsValtioDemo";
+
 const DEMO_COMPONENTS = {
   CounterZustand: { component: CounterZustand, name: "Zustand Counter Store" },
   CounterRTK: { component: CounterRTK, name: "Redux Toolkit Counter Slice" },
@@ -33,6 +41,12 @@ const DEMO_COMPONENTS = {
   ProductList: { component: ProductList, name: "React Query Prev/Next Pagination" },
   NumberedPaginationComponent: { component: NumberedPaginationComponent, name: "React Query Numbered Pagination" },
   InfiniteScrollComponent: { component: InfiniteScrollComponent, name: "React Query useInfiniteQuery Scroll Feed" },
+  ValitoCounter: { component: ValitoCounter, name: "Valtio Direct Proxy Mutation Counter" },
+  ValtioRenderTracking: { component: ValtioRenderTracking, name: "Valtio useSnapshot Render Tracking" },
+  TodoList: { component: TodoList, name: "Valtio Actions & Todo Architecture" },
+  TodoStats: { component: TodoStats, name: "Valtio Derived State (Computed Getters)" },
+  ThemeToggle: { component: ThemeToggle, name: "Valtio Persistence & Subscribe Snapshot" },
+  ZustandVsValtioDemo: { component: ZustandVsValtioDemo, name: "Zustand vs. Valtio State Paradigm Comparison" },
 };
 
 export default function DemoRenderer({ demoId }) {

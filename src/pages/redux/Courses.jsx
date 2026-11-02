@@ -25,7 +25,7 @@ function Courses() {
       courseUpdated({
         id,
         changes: {
-          title: "Advanced JavaScript & Architecture 🔥",
+          title: "Advanced JavaScript & Architecture",
         },
       })
     );

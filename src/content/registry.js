@@ -13,6 +13,11 @@ export const TOPIC_CATEGORIES = [
     description: "Lightweight, unopinionated centralized store with direct subscriptions, zero boilerplate, and modular slices.",
   },
   {
+    id: "valtio",
+    name: "Valtio (Proxy State)",
+    description: "Proxy-driven reactive state management with direct mutations, automatic render tracking, and immutable snapshots.",
+  },
+  {
     id: "redux",
     name: "Redux Toolkit (RTK)",
     description: "Predictable unidirectional data flow, configureStore, createSlice, memoized selectors, and async thunks.",
@@ -428,6 +433,473 @@ subscribe(s => s.count, (curr, prev) => console.log(\`Listener: \${prev} -> \${c
 update(1);
 update(5);
 return "Subscription fired accurately without React rendering!";`
+  },
+
+  // =========================================================================
+  // VALTIO (PROXY-BASED STATE MANAGEMENT)
+  // =========================================================================
+  {
+    id: "valtio-overview",
+    slug: "valtio",
+    category: "valtio",
+    group: "Valtio Core",
+    title: "Valtio Overview & Direct Mutability",
+    description: "Proxy-driven reactive state: direct mutations (state.count++) with automatic immutable snapshots and zero reducers.",
+    badge: "Core",
+    readTime: "5 min read",
+    image: {
+      src: "/valtio-proxy-architecture.png",
+      alt: "Valtio Proxy Architecture Flow Diagram",
+      caption: "Valtio Proxy Flow: Direct mutations on proxy store trigger snapshot generation and selective re-renders."
+    },
+    demoComponent: "ValitoCounter",
+    demoTitle: "Interactive Valtio Counter",
+    summary: "Valtio makes React state management feel like plain JavaScript. It wraps your state object in a native ES6 Proxy. You mutate values directly (state.count++, state.user.name = 'Kamal') without reducers, dispatch, or Immer wrappers. React components read from immutable snapshots generated automatically by useSnapshot.",
+    keyPoints: [
+      "Direct In-Place Mutation: Mutate objects and arrays directly (state.count++, state.todos.push()) without spread operators.",
+      "Zero Reducers or Action Creators: No action types, dispatch ceremony, or complex boilerplate.",
+      "Native JavaScript Proxy: Intercepts set and deleteProperty traps under the hood to detect state mutations.",
+      "Golden Rule: READ from snap in component render; WRITE to state in event handlers and callbacks."
+    ],
+    codeSnippets: [
+      {
+        title: "Creating a Store & Direct Mutation",
+        language: "javascript",
+        code: `import { proxy, useSnapshot } from "valtio";
+
+// 1. Create a proxy store
+export const state = proxy({
+  count: 0,
+  user: { name: "Kamal Abou Eid", isLoggedIn: true }
+});
+
+// 2. Consume in React component
+function Counter() {
+  const snap = useSnapshot(state); // Read from snap
+  return (
+    <div>
+      <p>{snap.count} - {snap.user.name}</p>
+      {/* Mutate directly on original state proxy */}
+      <button onClick={() => state.count++}>+ Increment</button>
+      <button onClick={() => { state.user.name = "Ali"; }}>Change Name</button>
+    </div>
+  );
+}`
+      }
+    ],
+    playgroundCode: `// Simulating Valtio Proxy Mutation Trap
+const target = { count: 0, user: { name: "Kamal" } };
+let listeners = [];
+
+const proxyState = new Proxy(target, {
+  set(obj, prop, value) {
+    obj[prop] = value;
+    console.log(\`Proxy Trap: Updated "\${String(prop)}" to\`, value);
+    listeners.forEach(fn => fn());
+    return true;
+  }
+});
+
+listeners.push(() => console.log("Listener: Snapshot invalidated!"));
+
+proxyState.count++;
+proxyState.count += 5;
+return \`Direct mutation completed! Current count: \${proxyState.count}\`;`
+  },
+
+  {
+    id: "valtio-use-snapshot",
+    slug: "valtio/use-snapshot",
+    category: "valtio",
+    group: "Valtio Core",
+    title: "useSnapshot & Render Tracking",
+    description: "Deep dive into useSnapshot: immutable frozen objects, automatic property-level tracking, and skipping unneeded renders.",
+    badge: "Optimization",
+    readTime: "6 min read",
+    image: {
+      src: "/valtio-proxy-architecture.png",
+      alt: "Valtio useSnapshot Render Tracking Flow",
+      caption: "useSnapshot tracking: Only components that access a modified property re-render. All others are skipped."
+    },
+    demoComponent: "ValtioRenderTracking",
+    demoTitle: "Interactive Render Tracking Demo",
+    summary: "The useSnapshot hook wraps the proxy in an immutable, frozen snapshot (Object.freeze). As your component renders, Valtio records which properties were accessed. When mutations occur, Valtio re-renders only components that read the specific mutated property, delivering fine-grained O(1) performance without manual selector hooks.",
+    keyPoints: [
+      "Property-Level Tracking: If Component A accesses snap.count and Component B accesses snap.user, mutating state.count re-renders only Component A.",
+      "Frozen Snapshots: snap is deeply frozen in development mode; mutating snap directly throws a TypeError.",
+      "Zero Selectors Needed: You don't need useSelector or shallow comparisons; reading JSX properties is your selector.",
+      "Structural Sharing: Unchanged nested objects maintain referential equality across snapshot versions."
+    ],
+    codeSnippets: [
+      {
+        title: "Selective Component Re-rendering",
+        language: "javascript",
+        code: `import { proxy, useSnapshot } from "valtio";
+
+const appState = proxy({ count: 0, text: "Hello" });
+
+// Component A: ONLY re-renders when count changes
+function CounterDisplay() {
+  const snap = useSnapshot(appState);
+  return <h1>{snap.count}</h1>;
+}
+
+// Component B: ONLY re-renders when text changes
+function TextDisplay() {
+  const snap = useSnapshot(appState);
+  return <p>{snap.text}</p>;
+}`
+      }
+    ],
+    playgroundCode: `// Simulating Property-Level Render Tracking
+const state = { count: 0, text: "Valtio" };
+const accessed = new Set();
+
+const snap = new Proxy(state, {
+  get(target, prop) {
+    accessed.add(prop);
+    return target[prop];
+  }
+});
+
+// Component render simulation
+console.log("Rendering CountWidget: read count =", snap.count);
+console.log("Tracked dependencies for CountWidget:", Array.from(accessed));
+
+function shouldRerender(changedProp) {
+  return accessed.has(changedProp);
+}
+
+console.log("Rerender on count change?", shouldRerender("count")); // true
+console.log("Rerender on text change?", shouldRerender("text"));   // false
+return "Fine-grained tracking demonstrated successfully!";`
+  },
+
+  {
+    id: "valtio-actions",
+    slug: "valtio/actions",
+    category: "valtio",
+    group: "Valtio Patterns",
+    title: "Valtio with Actions & State Architecture",
+    description: "Structuring scalable applications with action methods, clean domain separation, and async/await mutations.",
+    badge: "Architecture",
+    readTime: "5 min read",
+    image: {
+      src: "/valtio-proxy-architecture.png",
+      alt: "Valtio Actions Architecture",
+      caption: "Actions pattern: Grouping business mutations into clean, testable action objects."
+    },
+    demoComponent: "TodoList",
+    demoTitle: "Interactive Todo List Demo",
+    summary: "While Valtio allows mutating state anywhere, organizing business logic into an actions object or methods inside the store keeps code modular, maintainable, and easy to test. Async actions are standard async/await functions that mutate state directly upon promise resolution without middleware.",
+    keyPoints: [
+      "Actions Pattern: Encapsulate related mutations in an appActions object for clean separation of concerns.",
+      "Direct Async Operations: No createAsyncThunk, dispatch, or Redux saga; write standard async/await functions.",
+      "Testability: Action methods can be tested independently without mounting React components or mocking stores.",
+      "Array Mutations: Array methods like push(), splice(), and filter() mutate the proxy in place seamlessly."
+    ],
+    codeSnippets: [
+      {
+        title: "Action Object Pattern & Async Logic",
+        language: "javascript",
+        code: `import { proxy } from "valtio";
+
+export const appState = proxy({
+  todos: [],
+  isLoading: false,
+});
+
+export const appActions = {
+  addTodo: (text) => {
+    appState.todos.push({ id: Date.now(), text, completed: false });
+  },
+  toggleTodo: (id) => {
+    const todo = appState.todos.find(t => t.id === id);
+    if (todo) todo.completed = !todo.completed;
+  },
+  fetchRemoteTodos: async () => {
+    appState.isLoading = true;
+    try {
+      const res = await fetch("/api/todos");
+      appState.todos = await res.json();
+    } finally {
+      appState.isLoading = false;
+    }
+  }
+};`
+      }
+    ],
+    playgroundCode: `// Action Pattern in Action
+const store = { todos: [] };
+
+const actions = {
+  add(text) {
+    store.todos.push({ id: Date.now(), text, completed: false });
+  },
+  toggle(id) {
+    const item = store.todos.find(t => t.id === id);
+    if (item) item.completed = !item.completed;
+  }
+};
+
+actions.add("Learn Valtio");
+actions.add("Build React Dashboard");
+actions.toggle(store.todos[0].id);
+
+console.log("Current Todos:", store.todos);
+return \`Todos Count: \${store.todos.length}, First completed: \${store.todos[0].completed}\`;`
+  },
+
+  {
+    id: "valtio-derived-state",
+    slug: "valtio/derived-state",
+    category: "valtio",
+    group: "Valtio Patterns",
+    title: "Derived & Computed State with Getters",
+    description: "Defining reactive computed values with native JavaScript getters: zero selectors, zero createSelector, pure reactivity.",
+    badge: "Computed",
+    readTime: "5 min read",
+    image: {
+      src: "/valtio-derived-persistence.png",
+      alt: "Valtio Derived State Architecture",
+      caption: "Derived state with native getters: Automatic recalculation without createSelector boilerplate."
+    },
+    demoComponent: "TodoStats",
+    demoTitle: "Interactive Derived State Demo",
+    summary: "Valtio supports derived and computed state using native JavaScript getters (get propertyName). When you access snap.completedCount, the getter executes and Valtio tracks underlying dependencies automatically. When underlying data changes, the derived value recalculates reactively without external memoization libraries.",
+    keyPoints: [
+      "Native JS Getters: Define computed logic with get myProp() directly inside proxy({ ... }).",
+      "No Function Call in JSX: Accessed as a normal property snap.completedCount without parenthesis ().",
+      "Zero Boilerplate: Replaces createSelector (Reselect) and useMemo with clean vanilla JavaScript.",
+      "Automatic Dependency Tracking: Valtio tracks which state fields the getter accessed and invalidates snapshots accordingly."
+    ],
+    codeSnippets: [
+      {
+        title: "Derived State with Native Getters",
+        language: "javascript",
+        code: `import { proxy, useSnapshot } from "valtio";
+
+export const state = proxy({
+  todos: [
+    { id: 1, text: "Learn Valtio", completed: true },
+    { id: 2, text: "Master Getters", completed: false },
+  ],
+
+  // Native JavaScript Getter: evaluated as a reactive property
+  get completedCount() {
+    return state.todos.filter(todo => todo.completed).length;
+  },
+
+  get remainingCount() {
+    return state.todos.length - state.completedCount;
+  },
+
+  get progressPercentage() {
+    if (state.todos.length === 0) return 0;
+    return Math.round((state.completedCount / state.todos.length) * 100);
+  }
+});`
+      }
+    ],
+    playgroundCode: `// Testing Native Getter in Proxy Object
+const state = {
+  items: [10, 20, 30],
+  get total() {
+    return this.items.reduce((acc, curr) => acc + curr, 0);
+  },
+  get average() {
+    return this.total / this.items.length;
+  }
+};
+
+console.log("Total:", state.total);
+console.log("Average:", state.average);
+state.items.push(40);
+console.log("Updated Total:", state.total);
+return \`Derived Total: \${state.total}, Average: \${state.average}\`;`
+  },
+
+  {
+    id: "valtio-persistence",
+    slug: "valtio/persistence",
+    category: "valtio",
+    group: "Valtio Patterns",
+    title: "State Persistence (subscribe & snapshot)",
+    description: "Listening to mutations outside React with subscribe(), freezing state with snapshot(), and syncing to localStorage.",
+    badge: "Storage",
+    readTime: "6 min read",
+    image: {
+      src: "/valtio-derived-persistence.png",
+      alt: "Valtio Persistence Lifecycle Diagram",
+      caption: "Persistence lifecycle: External subscribe listener, frozen snapshot serialization, and boot hydration."
+    },
+    demoComponent: "ThemeToggle",
+    demoTitle: "Interactive Persistence & Storage Demo",
+    summary: "Valtio stores live in module scope outside React. The subscribe() function lets you listen to mutations from anywhere in your codebase. By passing state to snapshot(state), you obtain a deeply frozen, plain JavaScript object that can be safely serialized to JSON and persisted to browser localStorage or indexedDB.",
+    keyPoints: [
+      "Outside-React Subscriptions: subscribe(state, callback) runs synchronously on every state mutation.",
+      "snapshot(state): Deeply freezes state into a plain serializable JavaScript object safe for JSON.stringify.",
+      "Synchronous Boot Hydration: Load and parse stored JSON before creating proxy(savedState || initial) to avoid UI flickering.",
+      "Cross-Tab & Sync Friendly: Perfect for analytics, web socket sync, and browser storage integration."
+    ],
+    codeSnippets: [
+      {
+        title: "Full LocalStorage Persistence Setup",
+        language: "javascript",
+        code: `import { proxy, subscribe, snapshot } from "valtio";
+
+const STORAGE_KEY = "my_app_state";
+
+// 1. Initial State from localStorage
+const loadInitialState = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (err) {
+    console.warn("Storage load error:", err);
+  }
+  return { theme: "dark", counter: 0 };
+};
+
+export const state = proxy(loadInitialState());
+
+// 2. Subscribe to mutations outside React
+subscribe(state, () => {
+  const snap = snapshot(state); // frozen object safe for JSON
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+});`
+      }
+    ],
+    playgroundCode: `// Simulating subscribe and snapshot serialization
+let memoryStorage = {};
+const state = { theme: "dark", counter: 10 };
+
+function mockSnapshot(obj) {
+  return JSON.parse(JSON.stringify(obj)); // frozen clone
+}
+
+function persistState(s) {
+  const snap = mockSnapshot(s);
+  memoryStorage["state"] = JSON.stringify(snap);
+  console.log("Persisted to Storage:", memoryStorage["state"]);
+}
+
+persistState(state);
+state.counter += 5;
+persistState(state);
+return \`Stored JSON: \${memoryStorage["state"]}\`;`
+  },
+
+  {
+    id: "zustand-vs-valtio",
+    slug: "valtio/zustand-vs-valtio",
+    category: "valtio",
+    group: "Valtio Comparisons",
+    title: "Architectural Comparison: Zustand vs. Valtio",
+    description: "In-depth technical breakdown of two modern client state paradigms: Flux-like centralized store vs. Proxy-based fine-grained reactivity.",
+    badge: "Architecture",
+    readTime: "7 min read",
+    image: {
+      src: "/zustand-vs-redux-toolkit-for-react-state-managemen-1770720374772.png",
+      alt: "State Management Architecture Comparison",
+      caption: "State Paradigms: Centralized Flux-style stores vs. Direct proxy reactivity."
+    },
+    secondaryImage: {
+      src: "/valtio-proxy-architecture.png",
+      alt: "Valtio Proxy Architecture Flow",
+      caption: "Valtio Proxy Flow: Fine-grained tracking and direct mutable programming model."
+    },
+    demoComponent: "ZustandVsValtioDemo",
+    demoTitle: "Interactive Zustand vs. Valtio Comparison",
+    summary: "Both Zustand and Valtio were developed under the Poimandres collective to escape the excessive ceremony, boilerplate, and indirection of legacy Redux. However, they approach state management from fundamentally different paradigms: Zustand embraces a centralized, functional, immutable Flux model with explicit selectors, whereas Valtio embraces a transparent, mutable, proxy-driven model with automatic property-level tracking.",
+    keyPoints: [
+      "Paradigm: Zustand is Flux-like (unidirectional hook store with functional set() updaters), while Valtio is Proxy-driven (plain JS objects with set/delete property interception).",
+      "Mutation Model: Zustand enforces immutable state transitions (merging shallowly by default, needing Immer for nested state). Valtio allows direct in-place mutation (state.count++, state.items.push()) and generates frozen snapshots under the hood.",
+      "Render Optimization: Zustand requires manual selectors (useStore(s => s.x)) or useShallow to prevent unnecessary re-renders. Valtio tracks property access automatically during render via useSnapshot(state).",
+      "Learning Curve: Zustand feels instantly familiar to React developers used to useState. Valtio feels like writing vanilla JavaScript object mutations without React-specific ceremony.",
+      "Bundle Footprint: Zustand is approximately 1.1 kB minified+gzipped, while Valtio is approximately 3.1 kB due to the comprehensive Proxy and snapshot tracking engine."
+    ],
+    codeSnippets: [
+      {
+        title: "Side-by-Side: Zustand Store vs. Valtio Proxy",
+        language: "javascript",
+        code: `// --- 1. ZUSTAND IMPLEMENTATION ---
+import { create } from "zustand";
+
+export const useStore = create((set) => ({
+  count: 0,
+  user: { name: "Kamal", role: "Dev" },
+  increment: () => set((state) => ({ count: state.count + 1 })),
+  setName: (name) => set((state) => ({ user: { ...state.user, name } })),
+}));
+
+// In Component:
+// Requires manual selector to avoid re-rendering on other state changes
+function ZustandCounter() {
+  const count = useStore((state) => state.count);
+  const increment = useStore((state) => state.increment);
+  return <button onClick={increment}>Count: {count}</button>;
+}
+
+// --- 2. VALTIO IMPLEMENTATION ---
+import { proxy, useSnapshot } from "valtio";
+
+export const state = proxy({
+  count: 0,
+  user: { name: "Kamal", role: "Dev" },
+});
+
+// In Component:
+// Automatically tracks that only snap.count was read
+function ValtioCounter() {
+  const snap = useSnapshot(state);
+  return <button onClick={() => state.count++}>Count: {snap.count}</button>;
+}`
+      },
+      {
+        title: "Handling Nested State: Zustand (Immer) vs. Valtio (Native)",
+        language: "javascript",
+        code: `// ZUSTAND: Needs manual spread or Immer middleware for deep mutations
+const useNestedStore = create(
+  immer((set) => ({
+    settings: { profile: { theme: "dark" } },
+    setTheme: (theme) =>
+      set((state) => {
+        state.settings.profile.theme = theme;
+      }),
+  }))
+);
+
+// VALTIO: Deep nested mutations work natively out of the box
+const appState = proxy({
+  settings: { profile: { theme: "dark" } },
+});
+
+// Mutate anywhere directly:
+appState.settings.profile.theme = "light";`
+      }
+    ],
+    playgroundCode: `// Paradigm Simulator: Functional Setter vs. Proxy Trap
+// 1. Zustand Style (Functional Setter)
+let zustandState = { count: 0, user: "Kamal" };
+function zustandSet(updater) {
+  zustandState = { ...zustandState, ...updater(zustandState) };
+}
+zustandSet(s => ({ count: s.count + 1 }));
+
+// 2. Valtio Style (Proxy Trap)
+const valtioState = new Proxy({ count: 0, user: "Kamal" }, {
+  set(target, prop, val) {
+    target[prop] = val;
+    console.log(\`Proxy Intercepted: \${String(prop)} = \${val}\`);
+    return true;
+  }
+});
+valtioState.count++;
+
+console.log("Zustand Count:", zustandState.count);
+console.log("Valtio Count:", valtioState.count);
+return \`Zustand Count: \${zustandState.count} | Valtio Count: \${valtioState.count}\`;`
   },
 
   // =========================================================================

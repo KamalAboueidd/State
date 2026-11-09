@@ -27,6 +27,10 @@ import TodoStats from "../../pages/Valito/Drived";
 import ThemeToggle from "../../pages/Valito/ThemeToggle";
 import ZustandVsValtioDemo from "../../pages/Valito/ZustandVsValtioDemo";
 
+// Jotai Demos
+import CounterWithJotai from "../../pages/Jotai/CounterWithJotai";
+import JotaiRenderIsolation from "../../pages/Jotai/JotaiRenderIsolation";
+
 const DEMO_COMPONENTS = {
   CounterZustand: { component: CounterZustand, name: "Zustand Counter Store" },
   CounterRTK: { component: CounterRTK, name: "Redux Toolkit Counter Slice" },
@@ -47,6 +51,8 @@ const DEMO_COMPONENTS = {
   TodoStats: { component: TodoStats, name: "Valtio Derived State (Computed Getters)" },
   ThemeToggle: { component: ThemeToggle, name: "Valtio Persistence & Subscribe Snapshot" },
   ZustandVsValtioDemo: { component: ZustandVsValtioDemo, name: "Zustand vs. Valtio State Paradigm Comparison" },
+  CounterWithJotai: { component: CounterWithJotai, name: "Jotai Atomic Counter & Derived State" },
+  JotaiRenderIsolation: { component: JotaiRenderIsolation, name: "Jotai Atomic Render Isolation" },
 };
 
 export default function DemoRenderer({ demoId }) {

@@ -187,6 +187,39 @@ export default function DocumentationView() {
         </section>
       )}
 
+      {/* 8. Official Documentation & External References */}
+      {topic.references && topic.references.length > 0 && (
+        <section className="doc-section">
+          <h2 className="section-title">Official Documentation & References</h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "12px" }}>
+            {topic.references.map((ref, idx) => (
+              <a
+                key={idx}
+                href={ref.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px 14px",
+                  borderRadius: "6px",
+                  background: "var(--bg-subtle, #141414)",
+                  border: "1px solid var(--border-strong, #383838)",
+                  color: "var(--text-primary, #ededed)",
+                  textDecoration: "none",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                }}
+              >
+                <span>{ref.title}</span>
+                <span style={{ color: "var(--text-muted, #737373)", fontSize: "11px" }}>↗</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Recommended Topics */}
       <footer className="doc-footer">
         <div className="doc-recommendations">

@@ -18,6 +18,11 @@ export const TOPIC_CATEGORIES = [
     description: "Proxy-driven reactive state management with direct mutations, automatic render tracking, and immutable snapshots.",
   },
   {
+    id: "jotai",
+    name: "Jotai (Atomic State)",
+    description: "Primitive bottom-up atomic state primitives, derived reactive computations, and automatic render isolation without selectors.",
+  },
+  {
     id: "redux",
     name: "Redux Toolkit (RTK)",
     description: "Predictable unidirectional data flow, configureStore, createSlice, memoized selectors, and async thunks.",
@@ -454,6 +459,10 @@ return "Subscription fired accurately without React rendering!";`
     },
     demoComponent: "ValitoCounter",
     demoTitle: "Interactive Valtio Counter",
+    references: [
+      { title: "Valtio Official Documentation", url: "https://valtio.pmnd.rs/" },
+      { title: "Valtio GitHub Repository", url: "https://github.com/pmndrs/valtio" },
+    ],
     summary: "Valtio makes React state management feel like plain JavaScript. It wraps your state object in a native ES6 Proxy. You mutate values directly (state.count++, state.user.name = 'Kamal') without reducers, dispatch, or Immer wrappers. React components read from immutable snapshots generated automatically by useSnapshot.",
     keyPoints: [
       "Direct In-Place Mutation: Mutate objects and arrays directly (state.count++, state.todos.push()) without spread operators.",
@@ -900,6 +909,170 @@ valtioState.count++;
 console.log("Zustand Count:", zustandState.count);
 console.log("Valtio Count:", valtioState.count);
 return \`Zustand Count: \${zustandState.count} | Valtio Count: \${valtioState.count}\`;`
+  },
+
+  // =========================================================================
+  // JOTAI (ATOMIC STATE MANAGEMENT)
+  // =========================================================================
+  {
+    id: "jotai-overview",
+    slug: "jotai",
+    category: "jotai",
+    group: "Jotai Core",
+    title: "Jotai Overview & Atomic State Management",
+    description: "Bottom-up atomic state primitives: small independent atoms, zero boilerplate, familiar useState-like syntax, and automatic render isolation.",
+    badge: "Atomic",
+    readTime: "5 min read",
+    image: {
+      src: "/jotai-atomic-architecture.jpg",
+      alt: "Atomic State Management: React State with Jotai",
+      caption: "Jotai Architecture: Primitive atoms combined into derived atoms and consumed directly by React components."
+    },
+    secondaryImage: {
+      src: "/jotai-bottom-up-approach.jpg",
+      alt: "Jotai's Atomic State Management - Bottom-Up Approach",
+      caption: "Bottom-Up Architecture: Tiny independent atoms combined into complex state graphs."
+    },
+    demoComponent: "CounterWithJotai",
+    demoTitle: "Interactive Jotai Counter Demo",
+    references: [
+      { title: "Jotai Official Documentation", url: "https://jotai.org/" },
+      { title: "Jotai GitHub Repository", url: "https://github.com/pmndrs/jotai" },
+      { title: "Jotai Basics & Primitives Guide", url: "https://jotai.org/docs/basics/primitives" },
+    ],
+    summary: "Jotai is a tiny (~2.4KB), modern state management library for React. The word 'Jotai' means 'state' in Japanese. Instead of putting all app data into one giant store (top-down), Jotai embraces a bottom-up philosophy: splitting state into small, independent pieces called atoms that combine reactively.",
+    keyPoints: [
+      "Zero Boilerplate: No actions, reducers, dispatchers, or store provider wrappers needed.",
+      "Familiar useState Syntax: useAtom(countAtom) returns [value, setValue] identical to React's native useState.",
+      "Bottom-Up Composition: Create small primitive atoms and combine them into complex derived atoms effortlessly.",
+      "Automatic Render Isolation: Components only re-render when the specific atom they subscribe to changes.",
+      "Featherweight Size: Around 2.4KB minified and gzipped, keeping application bundles extremely light.",
+      "Official References: Website: https://jotai.org | GitHub: https://github.com/pmndrs/jotai"
+    ],
+    codeSnippets: [
+      {
+        title: "Defining & Consuming Atoms",
+        language: "javascript",
+        code: `// 1. store.js - Define atoms
+import { atom } from "jotai";
+
+// Primitive atom starting at 0
+export const countAtom = atom(0);
+
+// Derived read-only atom (auto-recalculates via get)
+export const doubleCountAtom = atom((get) => get(countAtom) * 2);
+
+// 2. Counter.jsx - Consume in component
+import React from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { countAtom, doubleCountAtom } from "./store";
+
+export function Counter() {
+  const [count, setCount] = useAtom(countAtom);
+  const doubleCount = useAtomValue(doubleCountAtom);
+
+  return (
+    <div>
+      <h2>Count: {count}</h2>
+      <h3>Double: {doubleCount}</h3>
+      <button onClick={() => setCount((c) => c + 1)}>Increment</button>
+      <button onClick={() => setCount((c) => c - 1)}>Decrement</button>
+    </div>
+  );
+}`
+      }
+    ],
+    playgroundCode: `// Simulating Jotai Atomic State & Derived Computation
+const atoms = new Map();
+
+function createAtom(initialValue) {
+  const key = Symbol();
+  atoms.set(key, initialValue);
+  return key;
+}
+
+function getAtomValue(key) {
+  return atoms.get(key);
+}
+
+function setAtomValue(key, updater) {
+  const current = atoms.get(key);
+  const next = typeof updater === "function" ? updater(current) : updater;
+  atoms.set(key, next);
+}
+
+const countAtomKey = createAtom(10);
+setAtomValue(countAtomKey, (c) => c + 5);
+
+const currentCount = getAtomValue(countAtomKey);
+const doubleCount = currentCount * 2;
+
+console.log("Count Atom Value:", currentCount);
+console.log("Derived Double Count:", doubleCount);
+return \`Atomic Count: \${currentCount} | Derived Double: \${doubleCount}\`;`
+  },
+
+  {
+    id: "jotai-derived-atoms",
+    slug: "jotai/derived-atoms",
+    category: "jotai",
+    group: "Jotai Patterns",
+    title: "Derived Atoms & Reactive Dependency Graphs",
+    description: "Read-only, write-only, and read-write derived atoms: building pure reactive dependency trees without selector hooks.",
+    badge: "Computed",
+    readTime: "6 min read",
+    image: {
+      src: "/jotai-bottom-up-approach.jpg",
+      alt: "Jotai Bottom-Up Derived State Combinations",
+      caption: "Derived atoms automatically track dependencies via get() and update only dependent components."
+    },
+    demoComponent: "JotaiRenderIsolation",
+    demoTitle: "Interactive Atomic Render Isolation Demo",
+    references: [
+      { title: "Jotai Derived Atoms Guide", url: "https://jotai.org/docs/basics/primitives#derived-atoms" },
+      { title: "Jotai Official Documentation", url: "https://jotai.org/" },
+      { title: "Jotai GitHub Repository", url: "https://github.com/pmndrs/jotai" },
+    ],
+    summary: "In Jotai, derived atoms are atoms that depend on other atoms. By passing a read function (get) => ..., Jotai automatically subscribes the derived atom to all accessed dependencies. If an atom changes, only derived atoms and components that depend on it are updated, establishing a fine-grained reactive dependency graph.",
+    keyPoints: [
+      "Read-Only Derived Atoms: atom((get) => get(priceAtom) * get(qtyAtom)) computes values on demand with caching.",
+      "Write-Only Action Atoms: atom(null, (get, set, payload) => ...) encapsulates state mutations like action dispatchers.",
+      "Read-Write Atoms: atom((get) => get(textAtom), (get, set, newText) => set(textAtom, newText.trim())) provides two-way mapping.",
+      "Zero Selectors Needed: You subscribe directly to the derived atom without writing custom equality checks.",
+      "Official References: Derived Atoms Guide: https://jotai.org/docs/basics/primitives#derived-atoms"
+    ],
+    codeSnippets: [
+      {
+        title: "Read-Only and Write-Only Derived Atoms",
+        language: "javascript",
+        code: `import { atom } from "jotai";
+
+// Primitive atoms
+export const priceAtom = atom(100);
+export const discountAtom = atom(0.15); // 15% discount
+
+// 1. Read-only derived atom
+export const finalPriceAtom = atom((get) => {
+  const price = get(priceAtom);
+  const discount = get(discountAtom);
+  return price - price * discount;
+});
+
+// 2. Write-only action atom
+export const applyDiscountAtom = atom(null, (get, set, newDiscount) => {
+  set(discountAtom, Math.min(Math.max(newDiscount, 0), 1));
+});`
+      }
+    ],
+    playgroundCode: `// Simulating Derived Atom Graph
+const price = 200;
+const discount = 0.2; // 20%
+const calculateFinal = (p, d) => p - (p * d);
+
+console.log("Original Price:", price);
+console.log("Discount:", discount);
+console.log("Calculated Final Price:", calculateFinal(price, discount));
+return \`Final Price calculated: $\${calculateFinal(price, discount)}\`;`
   },
 
   // =========================================================================

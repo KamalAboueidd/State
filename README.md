@@ -3,17 +3,17 @@
 ![Language](https://img.shields.io/badge/Language-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Framework](https://img.shields.io/badge/Framework-React-61DAFB?logo=react&logoColor=black)
 ![Topics](https://img.shields.io/badge/Topics-State%20Management%20in%20React-orange)
-![Client State](https://img.shields.io/badge/Client%20State-Zustand%20%7C%20Redux%20Toolkit-8A2BE2)
+![Client State](https://img.shields.io/badge/Client%20State-Zustand%20%7C%20Valtio%20%7C%20Jotai%20%7C%20RTK-8A2BE2)
 ![Server State](https://img.shields.io/badge/Server%20State-React%20Query%20%7C%20RTK%20Query-FF4154?logo=reactquery&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active%20Learning-brightgreen)
 
  **React State Management** reference repository! This repository contains structured study notes, visual diagrams, and clean implementations designed for deep conceptual mastery and practical problem solving across modern React state management solutions, categorized into:
-- **Client State**: Managing local synchronous application UI data (**Zustand**, **Valtio**, **Redux Toolkit**, **Entity Adapter**).
+- **Client State**: Managing local synchronous application UI data (**Zustand**, **Valtio**, **Jotai**, **Redux Toolkit**, **Entity Adapter**).
 - **Server State**: Managing asynchronous remote data fetching, caching, and synchronization (**TanStack React Query**, **RTK Query**).
 
 > **Author:** Kamal Aboueid  
 > **Topics:** State Management in React  
-> **Client State:** Zustand • Valtio • Redux Toolkit  
+> **Client State:** Zustand • Valtio • Jotai • Redux Toolkit  
 > **Server State:** TanStack React Query • RTK Query  
 > **Status:** Active Learning & Hands-on Reference
 
@@ -171,6 +171,10 @@ useStore.subscribe(
 # Valtio (Proxy-Based State Management)
 
 Valtio makes state management in React feel like plain JavaScript. It wraps your state in a native JavaScript `Proxy`, allowing you to mutate values directly (e.g. `state.count++`, `state.todos.push()`), while providing React with immutable frozen snapshots via `useSnapshot` to ensure optimal, property-level re-rendering.
+
+> **Official References:**
+> - Official Documentation: [valtio.pmnd.rs](https://valtio.pmnd.rs/)
+> - GitHub Repository: [pmndrs/valtio](https://github.com/pmndrs/valtio)
 
 ![Valtio Architecture](valtio-proxy-architecture.png)
 ![Valtio Derived & Persistence](valtio-derived-persistence.png)
@@ -563,6 +567,124 @@ function UserCard() {
 4. **You want rapid prototyping**: State feels like vanilla JavaScript, making development fast and intuitive without React-specific ceremonies.
 
 ---
+
+---
+
+# Atomic State Management: React State with Jotai
+
+If you have used React, you probably know how difficult it can be to manage global state. In the past, we had to use big tools like Redux, which needed a lot of extra code like actions and reducers. Later, tools like Zustand and Valtio made things much easier.
+
+Jotai introduces a simple, modern way to manage global state using the **atomic model**.
+
+> **Official References:**
+> - Official Documentation: [jotai.org](https://jotai.org/)
+> - GitHub Repository: [pmndrs/jotai](https://github.com/pmndrs/jotai)
+> - Basics & Primitives Guide: [jotai.org/docs/basics/primitives](https://jotai.org/docs/basics/primitives)
+
+![Jotai Architecture](jotai-atomic-architecture.jpg)
+![Jotai Bottom-Up Approach](jotai-bottom-up-approach.jpg)
+
+## 1. What is Jotai?
+
+**Jotai** is a small and modern state management library for React. The word "Jotai" means "state" in Japanese.
+
+Its core philosophy is **atomic state**. Instead of putting all your application data into one large centralized object (top-down), you decompose your state into small, independent pieces called **atoms** (bottom-up).
+
+An **atom** holds a small piece of data: a number, a string, a boolean, an array, or an object. When you need complex state, you combine these small atoms together through derived computations.
+
+---
+
+## 2. Why Choose Jotai?
+
+- **No Extra Code (Zero Boilerplate)**: You do not need actions, reducers, dispatchers, or provider wrappers. You just create an atom and use it directly.
+- **Familiar Syntax**: If you know how to use React's `useState`, you already know Jotai. `useAtom(myAtom)` returns `[value, setValue]` identical to `useState`.
+- **Fast Performance (Automatic Render Isolation)**: A component only re-renders when the specific atom it subscribes to changes. If an unrelated atom changes, other components completely ignore it.
+- **Tiny Bundle Footprint**: Jotai is featherweight (~2.4KB minified and gzipped), keeping your app fast and light.
+
+---
+
+## 3. How to Use Jotai
+
+### Step 1: Installation
+```bash
+npm install jotai
+```
+
+### Step 2: Defining Atoms ([`jotai.js`](file:///d:/directState/src/pages/Jotai/jotai.js))
+
+Create a file to hold your atoms. Import the `atom` function from `jotai` and define your state:
+
+```javascript
+import { atom } from "jotai";
+
+// 1. Primitive atom starting at 0
+export const countAtom = atom(0);
+
+// 2. Derived (read-only) atom that calculates double the count
+export const doubleCountAtom = atom((get) => get(countAtom) * 2);
+
+// 3. Independent text atom
+export const textAtom = atom("Jotai Atomic State");
+```
+
+**How does `get` work?**  
+In `doubleCountAtom`, we pass a function with the `get` parameter. This built-in helper reads the current value of `countAtom` and tracks it as a dependency. Whenever `countAtom` changes, `doubleCountAtom` updates automatically without manual dependency arrays.
+
+### Step 3: Using Atoms in Components ([`CounterWithJotai.jsx`](file:///d:/directState/src/pages/Jotai/CounterWithJotai.jsx))
+
+Import `useAtom` or `useAtomValue` inside your React components to read and update the state:
+
+```jsx
+import React from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { countAtom, doubleCountAtom } from "./jotai";
+
+export function Counter() {
+  const [count, setCount] = useAtom(countAtom);
+  const doubleCount = useAtomValue(doubleCountAtom);
+
+  return (
+    <div>
+      <h2>Count: {count}</h2>
+      <h3>Double Count: {doubleCount}</h3>
+
+      <button onClick={() => setCount((c) => c + 1)}>
+        Increment (+)
+      </button>
+      <button onClick={() => setCount((c) => c - 1)}>
+        Decrement (-)
+      </button>
+    </div>
+  );
+}
+```
+
+---
+
+## 4. Jotai vs. Other State Managers
+
+| Feature | Redux Toolkit | Zustand | Valtio | Jotai |
+| :--- | :--- | :--- | :--- | :--- |
+| **Architecture** | Top-down single store tree | Top-down centralized store hook | Proxy-wrapped mutable object | **Bottom-up atomic graph** |
+| **Update Model** | Unidirectional: Actions + Reducers | Immutable via `set` | In-place Proxy mutations | Immutable setter `setCount(c => c + 1)` |
+| **Selectors** | Required (`useSelector`) | Recommended (`useStore(s => s.x)`) | Not needed (Proxy getter tracking) | **Not needed (Atom granularity)** |
+| **Render Isolation**| Manual via selectors | Manual via selectors or `useShallow` | Automatic via `useSnapshot` | **Automatic per atom** |
+| **Bundle Size** | ~11 kB | ~1.1 kB | ~3.1 kB | **~2.4 kB** |
+| **Mental Model** | Enterprise Flux with rigid actions | Familiar hook store | Vanilla JS mutable object | **React `useState` taken to global scope** |
+
+- **Redux** puts all state in one giant store. It is great for enterprise apps with strict auditing, but changing a simple value takes multiple files and boilerplate.
+- **Zustand** provides a single centralized store with hooks. However, you must write manual selectors to avoid unnecessary re-renders.
+- **Valtio** uses JavaScript Proxies to allow direct in-place mutations (`state.count++`) and generates immutable snapshots for React.
+- **Jotai** takes a bottom-up path. Because each piece of state is already a separate atom, you do not need manual selectors. You just import the exact atom you need, and React only updates the components that consume that atom.
+
+---
+
+## 5. Conclusion & Practical Takeaway
+
+Jotai proves that global state management in React does not have to be complicated. By breaking application data down into independent atoms, you achieve:
+- **Ultra-simple code** with zero boilerplate.
+- **Automatic render isolation** without selectors or memoization wrappers.
+- **A developer experience** that feels just like standard native React.
 
 ---
 

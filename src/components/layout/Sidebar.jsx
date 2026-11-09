@@ -12,6 +12,8 @@ export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
     "Valtio Core": true,
     "Valtio Patterns": true,
     "Valtio Comparisons": true,
+    "Jotai Core": true,
+    "Jotai Patterns": true,
     "Redux Toolkit": true,
     "TanStack React Query": true,
     "RTK Query": true,
@@ -53,6 +55,7 @@ export default function Sidebar({ isMobileOpen, closeMobileSidebar }) {
         return <Compass size={14} className="cat-icon" />;
       case "zustand":
       case "valtio":
+      case "jotai":
         return <Zap size={14} className="cat-icon" />;
       case "redux":
       case "normalized-state":
